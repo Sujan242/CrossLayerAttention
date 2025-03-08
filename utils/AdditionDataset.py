@@ -4,7 +4,7 @@ import os
 
 
 class AdditionDataset(Dataset):
-    def __init__(self, file_path, max_sequence_length=512):
+    def __init__(self, file_path, max_sequence_length=512, token_to_id=None, id_to_token=None):
         self.max_length = max_sequence_length
 
         # Read and process data
@@ -19,8 +19,15 @@ class AdditionDataset(Dataset):
         # Add special tokens
         self.special_tokens = ['<PAD>', '<EOS>']
         self.vocab = self.special_tokens + sorted(self.characters)
-        self.token_to_id = {char: idx for idx, char in enumerate(self.vocab)}
-        self.id_to_token = {idx: char for idx, char in enumerate(self.vocab)}
+        if token_to_id is None:
+            self.token_to_id = {char: idx for idx, char in enumerate(self.vocab)}
+        else:
+            self.token_to_id = token_to_id
+
+        if id_to_token is None:
+            self.id_to_token = {idx: char for idx, char in enumerate(self.vocab)}
+        else:
+            self.id_to_token = id_to_token
 
         # Set token IDs
         self.pad_token_id = self.token_to_id['<PAD>']
