@@ -2,7 +2,7 @@ from transformers import TrainerCallback
 import torch
 
 class AdditionEvalCallback(TrainerCallback):
-    def __init__(self, eval_dataset, max_answer_length=5, eval_interval=100):
+    def __init__(self, eval_dataset, max_answer_length=5, eval_interval=100, save_path="model.pth"):
         self.eval_dataset = eval_dataset
         self.max_answer_length = max_answer_length
         self.token_to_id = eval_dataset.token_to_id
@@ -10,6 +10,7 @@ class AdditionEvalCallback(TrainerCallback):
         self.pad_token_id = eval_dataset.pad_token_id
         self.eos_token_id = eval_dataset.eos_token_id
         self.eval_interval = eval_interval
+        self.save_path = save_path
 
     def on_epoch_end(self, args, state, control, **kwargs):
 
@@ -46,5 +47,7 @@ class AdditionEvalCallback(TrainerCallback):
 
         if state.log_history:
             state.log_history[-1]['eval_accuracy'] = accuracy
+
+        torch.save(model.state_dict(), self.save_path)
 
         return control

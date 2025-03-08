@@ -50,7 +50,10 @@ if __name__ == "__main__":
                         num_attention_heads=cfg.model_configs.num_attention_heads,
                         num_hidden_layers=cfg.model_configs.num_hidden_layers)
 
-    eval_callback = AdditionEvalCallback(eval_dataset, max_answer_length=cfg.eval_configs.max_answer_length, eval_interval=cfg.eval_configs.eval_interval)
+    eval_callback = AdditionEvalCallback(eval_dataset,
+                                         max_answer_length=cfg.eval_configs.max_answer_length,
+                                         eval_interval=cfg.eval_configs.eval_interval,
+                                         save_path=cfg.eval_configs.save_path)
 
     training_args = TrainingArguments(
         output_dir=cfg.training_configs.output_dir,
@@ -63,3 +66,5 @@ if __name__ == "__main__":
     )
 
     train(train_dataset, model, eval_callback, training_args)
+
+# python3 train.py configs/addition/addition_1000.yaml
