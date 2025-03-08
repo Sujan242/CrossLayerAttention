@@ -2,16 +2,19 @@ from transformers import TrainerCallback
 import torch
 
 class AdditionEvalCallback(TrainerCallback):
-    def __init__(self, eval_dataset, num_hidden_layers, max_answer_length=5):
+    def __init__(self, eval_dataset, max_answer_length=5, eval_interval=100):
         self.eval_dataset = eval_dataset
         self.max_answer_length = max_answer_length
         self.token_to_id = eval_dataset.token_to_id
         self.id_to_token = eval_dataset.id_to_token
         self.pad_token_id = eval_dataset.pad_token_id
         self.eos_token_id = eval_dataset.eos_token_id
-        self.num_hidden_layers = num_hidden_layers
+        self.eval_interval = eval_interval
 
     def on_epoch_end(self, args, state, control, **kwargs):
+
+        if (1+state.epoch) % self.eval_interval != 0:
+            return control
         model = kwargs['model']
         device = next(model.parameters()).device
         total, correct = 0, 0

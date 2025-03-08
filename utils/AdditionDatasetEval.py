@@ -2,8 +2,7 @@ from torch.utils.data import Dataset
 import torch
 
 class EvalAdditionDataset(Dataset):
-    def __init__(self, file_path, max_sequence_length, token_to_id, id_to_token, pad_token_id, eos_token_id):
-        self.max_sequence_length = max_sequence_length
+    def __init__(self, file_path, token_to_id, id_to_token, pad_token_id, eos_token_id):
         self.token_to_id = token_to_id
         self.id_to_token = id_to_token
         self.pad_token_id = pad_token_id

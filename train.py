@@ -4,18 +4,23 @@ from utils.AdditionDataset import AdditionDataset
 from utils.AdditionDatasetEval import EvalAdditionDataset
 from utils.AdditionEvalCallback import AdditionEvalCallback
 from model.SmallScaleLlama import CustomLlama
+from types import SimpleNamespace
+import yaml
+import sys
 
-def train(train_dataset, model, eval_callback):
 
-    training_args = TrainingArguments(
-        output_dir="./results",
-        per_device_train_batch_size=8,
-        gradient_accumulation_steps=2,
-        learning_rate=2e-5,
-        num_train_epochs=3,
-        logging_dir="./logs",
-        remove_unused_columns=False  # Preserve attention_mask
-    )
+def load_config(config_path: str) -> SimpleNamespace:
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+
+    # Convert nested dictionaries to SimpleNamespace
+    for section in config:
+        config[section] = SimpleNamespace(**config[section])
+
+    return SimpleNamespace(**config)
+
+
+def train(train_dataset, model, eval_callback, training_args):
 
     trainer = Trainer(
         model=model,
@@ -27,18 +32,34 @@ def train(train_dataset, model, eval_callback):
     trainer.train()
 
 if __name__ == "__main__":
-    train_dataset = AdditionDataset("data/addition/train_3digit_10000.txt", max_sequence_length=20)
+    # get the config path from the script arguments
+    config_path = sys.argv[1]
+    cfg = load_config(config_path)
+
+    train_dataset = AdditionDataset(cfg.data_configs.train_data_path, max_sequence_length=cfg.data_configs.max_sequence_length)
     eval_dataset = EvalAdditionDataset(
-        file_path="data/addition/test_3digit_10000.txt",
-        max_sequence_length=20,
+        file_path=cfg.data_configs.test_data_path,
         token_to_id=train_dataset.token_to_id,
         id_to_token=train_dataset.id_to_token,
         pad_token_id=train_dataset.pad_token_id,
         eos_token_id=train_dataset.eos_token_id
     )
 
-    model = CustomLlama(vocab_size=train_dataset.vocab_size, hidden_size=500, num_attention_heads=5, num_hidden_layers=4)
+    model = CustomLlama(vocab_size=train_dataset.vocab_size,
+                        hidden_size=cfg.model_configs.hidden_size,
+                        num_attention_heads=cfg.model_configs.num_attention_heads,
+                        num_hidden_layers=cfg.model_configs.num_hidden_layers)
 
-    eval_callback = AdditionEvalCallback(eval_dataset, max_answer_length=5, num_hidden_layers=4)
+    eval_callback = AdditionEvalCallback(eval_dataset, max_answer_length=cfg.eval_configs.max_answer_length, eval_interval=cfg.eval_configs.eval_interval)
 
-    train(train_dataset, model, eval_callback)
+    training_args = TrainingArguments(
+        output_dir=cfg.training_configs.output_dir,
+        per_device_train_batch_size=cfg.training_configs.per_device_train_batch_size,
+        gradient_accumulation_steps=cfg.training_configs.gradient_accumulation_steps,
+        learning_rate=float(cfg.training_configs.learning_rate),
+        num_train_epochs=cfg.training_configs.num_train_epochs,
+        logging_dir=cfg.training_configs.logging_dir,
+        remove_unused_columns=cfg.training_configs.remove_unused_columns
+    )
+
+    train(train_dataset, model, eval_callback, training_args)
