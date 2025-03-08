@@ -1,0 +1,78 @@
+import torch.nn as nn
+import torch
+from transformers import LlamaConfig, LlamaModel
+from .CustomDynamicCache import CustomDynamicCache
+
+
+class CustomLlama(nn.Module):
+    def __init__(self, vocab_size, hidden_size=512, num_attention_heads=5,
+                 num_hidden_layers=4):
+        super().__init__()
+        self.embed_tokens = nn.Embedding(vocab_size, hidden_size)
+
+        self.config = LlamaConfig(
+            vocab_size=vocab_size,
+            hidden_size=hidden_size,
+            num_attention_heads=num_attention_heads,
+            num_hidden_layers=num_hidden_layers
+        )
+
+        self.llama_model = LlamaModel(self.config)
+        self.lm_head = nn.Linear(hidden_size, vocab_size, bias=False)
+
+    def forward(self, input_ids, attention_mask=None, labels=None):
+        batch_size, seq_len = input_ids.shape
+        dynamic_cache = CustomDynamicCache()
+        logits = []
+
+        device = input_ids.device
+
+        # Initialize position_ids
+        # position_ids = attention_mask.cumsum(dim=1) - 1 if attention_mask is not None else None
+
+        for t in range(seq_len):
+            # Get current token for all batches
+            current_input = input_ids[:, t].unsqueeze(1)
+
+            current_mask = None
+            # add (config.num_hidden_layers -1 ) 1s to the begginning of the attention mask
+            if attention_mask is not None:
+                current_mask = torch.cat([torch.ones(batch_size, self.config.num_hidden_layers - 1).to(device=device), attention_mask[:, :t + 1]], dim=1)
+
+            # current_position_ids = position_ids[:, t].unsqueeze(1) if position_ids is not None else None
+
+            # Get embeddings
+            embeddings = self.embed_tokens(current_input)
+
+            # Forward pass with cache
+            outputs = self.llama_model(
+                inputs_embeds=embeddings,
+                attention_mask=current_mask,
+                # position_ids=current_position_ids,
+                past_key_values=dynamic_cache,
+                use_cache=True
+            )
+
+            # Get logits for next token prediction
+            next_logits = self.lm_head(outputs.last_hidden_state)
+            logits.append(next_logits)
+
+        # Combine all logits
+        logits = torch.cat(logits, dim=1)  # [batch_size, seq_len, vocab_size]
+
+        loss = None
+        if labels is not None:
+            # Shift logits and labels for causal LM
+            shift_logits = logits[..., :-1, :].contiguous()
+            shift_labels = labels[..., 1:].contiguous()
+            loss_fct = nn.CrossEntropyLoss()
+            loss = loss_fct(
+                shift_logits.view(-1, self.config.vocab_size),
+                shift_labels.view(-1)
+            )
+
+        return {'loss': loss, 'logits': logits}
+
+    def prepare_inputs_for_generation(self, input_ids, **kwargs):
+        # Needed for text generation compatibility
+        return {'input_ids': input_ids}
