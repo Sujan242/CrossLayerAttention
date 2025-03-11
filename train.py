@@ -8,6 +8,7 @@ from types import SimpleNamespace
 import yaml
 import sys
 import torch
+import os
 
 
 def load_config(config_path: str) -> SimpleNamespace:
@@ -46,12 +47,14 @@ if __name__ == "__main__":
         eos_token_id=train_dataset.eos_token_id
     )
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     model = CustomLlama(vocab_size=train_dataset.vocab_size,
                         hidden_size=cfg.model_configs.hidden_size,
                         num_attention_heads=cfg.model_configs.num_attention_heads,
-                        num_hidden_layers=cfg.model_configs.num_hidden_layers)
+                        num_hidden_layers=cfg.model_configs.num_hidden_layers).to(device)
 
-    if cfg.eval_configs.save_path:
+    if os.path.exists(cfg.eval_configs.save_path):
         print("loading previous weights")
         model.load_state_dict(torch.load(cfg.eval_configs.save_path))
 
