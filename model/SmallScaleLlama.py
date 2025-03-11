@@ -1,6 +1,7 @@
-import torch.nn as nn
 import torch
-from transformers import LlamaConfig, LlamaModel, PreTrainedModel, LlamaPreTrainedModel
+import torch.nn as nn
+from transformers import LlamaConfig, LlamaModel, LlamaPreTrainedModel
+
 from .CustomDynamicCache import CustomDynamicCache
 
 
@@ -87,13 +88,21 @@ class CustomLlama(LlamaPreTrainedModel):
         generated_ids = []
         dynamic_cache = CustomDynamicCache()  # Initialize cache
 
-
-        # prefilling
+        # input_embeds = self.embed_tokens(input_ids)
+        # outputs = self.llama_model(
+        #     inputs_embeds=input_embeds,
+        #     attention_mask=attention_mask,
+        #     past_key_values=dynamic_cache,
+        #     use_cache=True
+        # )
+        # TODO parallel - prefilling
         for t in range(input_ids.shape[1]):
             current_input = input_ids[:, t].unsqueeze(1)
 
+            embeddings = self.embed_tokens(current_input)
+
             outputs = self.llama_model(
-                input_ids=current_input,
+                inputs_embeds=embeddings,
                 past_key_values=dynamic_cache,
                 use_cache=True
             )

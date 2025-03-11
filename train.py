@@ -7,6 +7,7 @@ from model.SmallScaleLlama import CustomLlama
 from types import SimpleNamespace
 import yaml
 import sys
+import torch
 
 
 def load_config(config_path: str) -> SimpleNamespace:
@@ -49,6 +50,10 @@ if __name__ == "__main__":
                         hidden_size=cfg.model_configs.hidden_size,
                         num_attention_heads=cfg.model_configs.num_attention_heads,
                         num_hidden_layers=cfg.model_configs.num_hidden_layers)
+
+    if cfg.eval_configs.save_path:
+        print("loading previous weights")
+        model.load_state_dict(torch.load(cfg.eval_configs.save_path))
 
     eval_callback = AdditionEvalCallback(eval_dataset,
                                          max_answer_length=cfg.eval_configs.max_answer_length,
