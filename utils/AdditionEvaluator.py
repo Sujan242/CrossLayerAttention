@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import torch
 import yaml
 
-from model.SmallScaleLlama import CustomLlama
+from model.SmallScaleLlama import CustomLlamaSequential
 from utils.AdditionDataset import AdditionDataset
 from utils.AdditionDatasetEval import EvalAdditionDataset
 
@@ -23,10 +23,10 @@ def evaluate(eval_dataset, model_path, cfg, train_dataset):
     id_to_token = eval_dataset.id_to_token
     eos_token_id = eval_dataset.eos_token_id
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = CustomLlama(vocab_size=train_dataset.vocab_size,
-                            hidden_size=cfg.model_configs.hidden_size,
-                            num_attention_heads=cfg.model_configs.num_attention_heads,
-                            num_hidden_layers=cfg.model_configs.num_hidden_layers).to(device)
+    model = CustomLlamaSequential(vocab_size=train_dataset.vocab_size,
+                                  hidden_size=cfg.model_configs.hidden_size,
+                                  num_attention_heads=cfg.model_configs.num_attention_heads,
+                                  num_hidden_layers=cfg.model_configs.num_hidden_layers).to(device)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
     total, correct = 0, 0

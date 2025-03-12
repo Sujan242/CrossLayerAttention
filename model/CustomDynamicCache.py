@@ -5,6 +5,10 @@ from typing import Dict, Any, Optional, Tuple
 
 class CustomDynamicCache(DynamicCache):
 
+    def __init__(self, parallel_training: bool = False):
+        super().__init__()
+        self._parallel_training = parallel_training
+
     def update(
             self,
             key_states: torch.Tensor,
@@ -52,9 +56,20 @@ class CustomDynamicCache(DynamicCache):
 
         # Gather previous token's cache from all other layers
         if self._seen_tokens > 1:
+            previous_token_key_caches = []
+            prev_token_value_caches = []
+            if self._parallel_training:
+                previous_token_key_caches = [self.key_cache[i][:, :, -1, ] for i in range(layer_idx)]
+                prev_token_value_caches = [self.value_cache[i][:, :, -1, ] for i in range(layer_idx)]
+            else:
+                previous_token_key_caches = [self.key_cache[i][:, :, -1, ] for i in range(len(self.key_cache)) if i != layer_idx]
+                prev_token_value_caches = [self.value_cache[i][:, :, -1, ] for i in range(len(self.key_cache)) if i != layer_idx]
 
-            prev_token_key_cache = torch.stack([self.key_cache[i][:, :, -1, ] for i in range(len(self.key_cache)) if i != layer_idx], dim=2)
-            prev_token_value_cache = torch.stack([self.value_cache[i][:, :, -1, ] for i in range(len(self.key_cache)) if i != layer_idx], dim=2)
+            if len(previous_token_key_caches) == 0:
+                return self.key_cache[layer_idx], self.value_cache[layer_idx]
+
+            prev_token_key_cache = torch.stack(previous_token_key_caches, dim=2)
+            prev_token_value_cache = torch.stack(prev_token_value_caches, dim=2)
 
             concatenated_keys = torch.cat([prev_token_key_cache,self.key_cache[layer_idx] ], dim=2)
             concatenated_values = torch.cat([prev_token_value_cache,self.value_cache[layer_idx]], dim=-2)

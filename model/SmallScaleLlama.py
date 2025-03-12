@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.nn.functional import embedding
 from transformers import LlamaConfig, LlamaModel, LlamaPreTrainedModel
 
 from .CustomDynamicCache import CustomDynamicCache
@@ -23,6 +24,83 @@ class CustomLlama(LlamaPreTrainedModel):
         self.lm_head = nn.Linear(hidden_size, vocab_size, bias=False)
 
         self.post_init()
+
+    def forward(self, input_ids, attention_mask=None, labels=None):
+        pass
+
+    def logits_and_loss(self, logits, labels):
+        loss = None
+        if labels is not None:
+            # Shift logits and labels for causal LM
+            shift_logits = logits[..., :-1, :].contiguous()
+            shift_labels = labels[..., 1:].contiguous()
+            loss_fct = nn.CrossEntropyLoss()
+            loss = loss_fct(
+                shift_logits.view(-1, self.config.vocab_size),
+                shift_labels.view(-1)
+            )
+
+        return {'loss': loss, 'logits': logits}
+
+    def generate(
+            self,
+            input_ids: torch.Tensor,
+            attention_mask: torch.Tensor = None,
+            max_new_tokens: int = 20,
+            temperature: float = 1.0,
+            eos_token_id: int = None,
+            parallel_training: bool = False
+    ):
+        generated_ids = []
+        dynamic_cache = CustomDynamicCache(parallel_training=parallel_training)  # Initialize cache
+
+        # input_embeds = self.embed_tokens(input_ids)
+        # outputs = self.llama_model(
+        #     inputs_embeds=input_embeds,
+        #     attention_mask=attention_mask,
+        #     past_key_values=dynamic_cache,
+        #     use_cache=True
+        # )
+        # dynamic_cache.set_prefilling(False)  # Stop prefilling
+        # TODO parallel - prefilling
+        for t in range(input_ids.shape[1]):
+            current_input = input_ids[:, t].unsqueeze(1)
+
+            embeddings = self.embed_tokens(current_input)
+
+            outputs = self.llama_model(
+                inputs_embeds=embeddings,
+                past_key_values=dynamic_cache,
+                use_cache=True
+            )
+
+        # Autoregressive generation loop
+        for _ in range(max_new_tokens):
+            # Get logits for next token (use last token in sequence)
+            next_logits = self.lm_head(outputs.last_hidden_state[:, -1, :])
+
+            # Apply temperature
+            next_token = torch.argmax(next_logits / temperature, dim=-1)
+
+            # Append generated token
+            generated_ids.append(next_token)
+
+            # Stop if EOS generated
+            if eos_token_id is not None and (next_token == eos_token_id).any():
+                break
+
+            embeds = self.embed_tokens(next_token.unsqueeze(1))
+            # Forward the new token through the model
+            outputs = self.llama_model(
+                inputs_embeds=embeds,
+                past_key_values=dynamic_cache,  # Reuse updated cache
+                use_cache=True
+            )
+
+        return generated_ids
+
+
+class CustomLlamaSequential(CustomLlama):
 
     def forward(self, input_ids, attention_mask=None, labels=None):
         batch_size, seq_len = input_ids.shape
@@ -64,70 +142,33 @@ class CustomLlama(LlamaPreTrainedModel):
         # Combine all logits
         logits = torch.cat(logits, dim=1)  # [batch_size, seq_len, vocab_size]
 
-        loss = None
-        if labels is not None:
-            # Shift logits and labels for causal LM
-            shift_logits = logits[..., :-1, :].contiguous()
-            shift_labels = labels[..., 1:].contiguous()
-            loss_fct = nn.CrossEntropyLoss()
-            loss = loss_fct(
-                shift_logits.view(-1, self.config.vocab_size),
-                shift_labels.view(-1)
-            )
+        return self.logits_and_loss(logits, labels)
 
-        return {'loss': loss, 'logits': logits}
+class CustomLlamaParallel(CustomLlama):
+    def forward(self, input_ids, attention_mask=None, labels=None):
+        batch_size, seq_len = input_ids.shape
+        dynamic_cache = CustomDynamicCache()
+        logits = []
 
-    def generate(
-            self,
-            input_ids: torch.Tensor,
-            attention_mask: torch.Tensor = None,
-            max_new_tokens: int = 20,
-            temperature: float = 1.0,
-            eos_token_id: int = None,
-    ):
-        generated_ids = []
-        dynamic_cache = CustomDynamicCache()  # Initialize cache
+        device = input_ids.device
 
-        # input_embeds = self.embed_tokens(input_ids)
-        # outputs = self.llama_model(
-        #     inputs_embeds=input_embeds,
-        #     attention_mask=attention_mask,
-        #     past_key_values=dynamic_cache,
-        #     use_cache=True
-        # )
-        # TODO parallel - prefilling
-        for t in range(input_ids.shape[1]):
-            current_input = input_ids[:, t].unsqueeze(1)
+        # Initialize position_ids
+        # position_ids = attention_mask.cumsum(dim=1) - 1 if attention_mask is not None else None
 
-            embeddings = self.embed_tokens(current_input)
+        embeddings = self.embed_tokens(input_ids)
+        # # add (config.num_hidden_layers -1 ) 1s to all attention masks and store in current_mask
+        current_mask = torch.cat([torch.ones(batch_size, self.config.num_hidden_layers - 1).to(device=device), attention_mask], dim=1)
 
-            outputs = self.llama_model(
+        outputs = outputs = self.llama_model(
                 inputs_embeds=embeddings,
+                attention_mask=current_mask,
+                # position_ids=current_position_ids,
                 past_key_values=dynamic_cache,
                 use_cache=True
             )
 
-        # Autoregressive generation loop
-        for _ in range(max_new_tokens):
-            # Get logits for next token (use last token in sequence)
-            next_logits = self.lm_head(outputs.last_hidden_state[:, -1, :])
+        logits = self.lm_head(outputs.last_hidden_state)
 
-            # Apply temperature
-            next_token = torch.argmax(next_logits / temperature, dim=-1)
+        logits = torch.cat(logits, dim=1)  # [batch_size, seq_len, vocab_size]
 
-            # Append generated token
-            generated_ids.append(next_token)
-
-            # Stop if EOS generated
-            if eos_token_id is not None and (next_token == eos_token_id).any():
-                break
-
-            embeds = self.embed_tokens(next_token.unsqueeze(1))
-            # Forward the new token through the model
-            outputs = self.llama_model(
-                inputs_embeds=embeds,
-                past_key_values=dynamic_cache,  # Reuse updated cache
-                use_cache=True
-            )
-
-        return generated_ids
+        return self.logits_and_loss(logits, labels)

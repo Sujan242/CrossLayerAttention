@@ -3,7 +3,7 @@ from transformers import Trainer, TrainingArguments
 from utils.AdditionDataset import AdditionDataset
 from utils.AdditionDatasetEval import EvalAdditionDataset
 from utils.AdditionEvalCallback import AdditionEvalCallback
-from model.SmallScaleLlama import CustomLlama
+from model.SmallScaleLlama import CustomLlamaSequential
 from types import SimpleNamespace
 import yaml
 import sys
@@ -49,10 +49,10 @@ if __name__ == "__main__":
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    model = CustomLlama(vocab_size=train_dataset.vocab_size,
-                        hidden_size=cfg.model_configs.hidden_size,
-                        num_attention_heads=cfg.model_configs.num_attention_heads,
-                        num_hidden_layers=cfg.model_configs.num_hidden_layers).to(device)
+    model = CustomLlamaSequential(vocab_size=train_dataset.vocab_size,
+                                  hidden_size=cfg.model_configs.hidden_size,
+                                  num_attention_heads=cfg.model_configs.num_attention_heads,
+                                  num_hidden_layers=cfg.model_configs.num_hidden_layers).to(device)
 
     if os.path.exists(cfg.eval_configs.save_path):
         print("loading previous weights")
