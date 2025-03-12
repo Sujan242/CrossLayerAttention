@@ -26,7 +26,10 @@ def evaluate(eval_dataset, model_path, cfg, train_dataset):
     model = CustomLlama(vocab_size=train_dataset.vocab_size,
                             hidden_size=cfg.model_configs.hidden_size,
                             num_attention_heads=cfg.model_configs.num_attention_heads,
-                            num_hidden_layers=cfg.model_configs.num_hidden_layers).to(device)
+                            num_hidden_layers=cfg.model_configs.num_hidden_layers,
+                            attention_dropout=cfg.model_configs.attention_dropout,
+                            hidden_dropout=cfg.model_configs.hidden_dropout,
+                        ).to(device)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
     total, correct = 0, 0
@@ -62,10 +65,10 @@ if __name__ == "__main__":
 
     cfg = load_config(config_path)
 
-    train_dataset = AdditionDataset("/home/sujanreddy/PycharmProjects/CrossLayerAttention/data/addition/train_3digit_10000.txt",
+    train_dataset = AdditionDataset("/Users/Patron/PycharmProjects/CrossLayerAttention/data/addition/train_3digit_10000.txt",
                                     max_sequence_length=cfg.data_configs.max_sequence_length)
     eval_dataset = EvalAdditionDataset(
-        file_path="/home/sujanreddy/PycharmProjects/CrossLayerAttention/data/addition/train_3digit_10000.txt",
+        file_path="/Users/Patron/PycharmProjects/CrossLayerAttention/data/addition/test_3digit_10000.txt",
         token_to_id=train_dataset.token_to_id,
         id_to_token=train_dataset.id_to_token,
         pad_token_id=train_dataset.pad_token_id,
@@ -74,5 +77,5 @@ if __name__ == "__main__":
 
     model_path =cfg.eval_configs.save_path
 
-    evaluate(eval_dataset, "/home/sujanreddy/PycharmProjects/CrossLayerAttention/model_weights/addition_1000.pth", cfg, train_dataset)
+    evaluate(eval_dataset, "/Users/Patron/PycharmProjects/CrossLayerAttention/model_weights/addition_1000.pth", cfg, train_dataset)
     print("Done.")

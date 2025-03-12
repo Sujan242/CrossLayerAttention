@@ -52,7 +52,10 @@ if __name__ == "__main__":
     model = CustomLlama(vocab_size=train_dataset.vocab_size,
                         hidden_size=cfg.model_configs.hidden_size,
                         num_attention_heads=cfg.model_configs.num_attention_heads,
-                        num_hidden_layers=cfg.model_configs.num_hidden_layers).to(device)
+                        num_hidden_layers=cfg.model_configs.num_hidden_layers,
+                        attention_dropout=cfg.model_configs.attention_dropout,
+                        hidden_dropout=cfg.model_configs.hidden_dropout,
+                        ).to(device)
 
     if os.path.exists(cfg.eval_configs.save_path):
         print("loading previous weights")

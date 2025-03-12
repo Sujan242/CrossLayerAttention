@@ -7,14 +7,18 @@ from .CustomDynamicCache import CustomDynamicCache
 
 class CustomLlama(LlamaPreTrainedModel):
     def __init__(self, vocab_size, hidden_size=512, num_attention_heads=5,
-                 num_hidden_layers=4):
+                 num_hidden_layers=4,
+                 attention_dropout=0.1,
+                 hidden_dropout=0.1):
 
         # Create configuration
         self.config = LlamaConfig(
             vocab_size=vocab_size,
             hidden_size=hidden_size,
             num_attention_heads=num_attention_heads,
-            num_hidden_layers=num_hidden_layers
+            num_hidden_layers=num_hidden_layers,
+            attention_dropout=attention_dropout,  # Add dropout
+            hidden_dropout=hidden_dropout,
         )
         super().__init__(self.config)
         self.embed_tokens = nn.Embedding(vocab_size, hidden_size)
