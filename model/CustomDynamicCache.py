@@ -53,8 +53,8 @@ class CustomDynamicCache(DynamicCache):
         # Gather previous token's cache from all other layers
         if self._seen_tokens > 1:
 
-            prev_token_key_cache = torch.stack([self.key_cache[i][:, :, -1, ] for i in range(len(self.key_cache)) if i != layer_idx], dim=2)
-            prev_token_value_cache = torch.stack([self.value_cache[i][:, :, -1, ] for i in range(len(self.key_cache)) if i != layer_idx], dim=2)
+            prev_token_key_cache = torch.stack([self.key_cache[i][:, :, self._seen_tokens-2,: ] for i in range(len(self.key_cache)) if i != layer_idx], dim=2)
+            prev_token_value_cache = torch.stack([self.value_cache[i][:, :, self._seen_tokens-2, ] for i in range(len(self.key_cache)) if i != layer_idx], dim=2)
 
             concatenated_keys = torch.cat([prev_token_key_cache,self.key_cache[layer_idx] ], dim=2)
             concatenated_values = torch.cat([prev_token_value_cache,self.value_cache[layer_idx]], dim=-2)

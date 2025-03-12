@@ -44,8 +44,10 @@ class CustomLlama(LlamaPreTrainedModel):
 
             current_mask = None
             # add (config.num_hidden_layers -1 ) 1s to the begginning of the attention mask
-            if attention_mask is not None:
-                current_mask = torch.cat([torch.ones(batch_size, self.config.num_hidden_layers - 1).to(device=device), attention_mask[:, :t + 1]], dim=1)
+            if t != 0:
+                current_mask = torch.cat([torch.ones(batch_size, (self.config.num_hidden_layers - 1)).to(device=device), attention_mask[:, :t + 1]], dim=1)
+            else:
+                current_mask = attention_mask[:, :t + 1]
 
             # current_position_ids = position_ids[:, t].unsqueeze(1) if position_ids is not None else None
 
