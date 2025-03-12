@@ -9,7 +9,12 @@ class EvalAdditionDataset(Dataset):
         self.eos_token_id = eos_token_id
 
         with open(file_path, 'r', encoding='utf-8') as f:
-            self.lines = [line.strip() for line in f.readlines()]
+            for line in f.readlines():
+                equation = line.strip()
+                lhs = equation.split("=")[0]
+                rhs = equation.split("=")[1]
+                reversed_rhs = "".join(rhs[::-1])
+                self.lines.append(f"{lhs}={reversed_rhs}")
 
         self.questions = []
         self.answers = []

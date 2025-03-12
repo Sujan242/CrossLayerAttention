@@ -6,10 +6,15 @@ import os
 class AdditionDataset(Dataset):
     def __init__(self, file_path, max_sequence_length=512, token_to_id=None, id_to_token=None):
         self.max_length = max_sequence_length
-
+        self.lines = []
         # Read and process data
         with open(file_path, 'r', encoding='utf-8') as f:
-            self.lines = [line.strip() for line in f.readlines()]
+            for line in f.readlines():
+                equation = line.strip()
+                lhs = equation.split("=")[0]
+                rhs = equation.split("=")[1]
+                reversed_rhs = "".join(rhs[::-1])
+                self.lines.append(f"{lhs}={reversed_rhs}")
 
         # Create vocabulary
         self.characters = set()
