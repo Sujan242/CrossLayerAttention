@@ -8,6 +8,7 @@ class EvalAdditionDataset(Dataset):
         self.pad_token_id = pad_token_id
         self.eos_token_id = eos_token_id
 
+        self.lines = []
         with open(file_path, 'r', encoding='utf-8') as f:
             for line in f.readlines():
                 equation = line.strip()
