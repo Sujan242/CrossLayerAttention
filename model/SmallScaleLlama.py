@@ -45,7 +45,7 @@ class CustomLlama(LlamaPreTrainedModel):
             current_mask = None
             # add (config.num_hidden_layers -1 ) 1s to the begginning of the attention mask
             if t != 0:
-                current_mask = torch.cat([torch.ones(batch_size, (self.config.num_hidden_layers - 1)).to(device=device), attention_mask[:, :t + 1]], dim=1)
+                current_mask = torch.cat([torch.ones(batch_size, (self.config.num_hidden_layers - 1)*t).to(device=device), attention_mask[:, :t + 1]], dim=1)
             else:
                 current_mask = attention_mask[:, :t + 1]
 
