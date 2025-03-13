@@ -49,6 +49,8 @@ if __name__ == "__main__":
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    print("running on device:", device)
+
     model = CustomLlama(vocab_size=train_dataset.vocab_size,
                         hidden_size=cfg.model_configs.hidden_size,
                         num_attention_heads=cfg.model_configs.num_attention_heads,
