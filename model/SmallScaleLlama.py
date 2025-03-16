@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 import torch
 import torch.nn as nn
@@ -180,9 +180,10 @@ class CustomLlamaDecoder(LlamaDecoderLayer):
         return super().forward(input_ids=input_ids, attention_mask=attention_mask, position_ids=position_ids, past_key_values=past_key_values, inputs_embeds=inputs_embeds, use_cache=use_cache, output_attentions=output_attentions, output_hidden_states=output_hidden_states, return_dict=return_dict, cache_position=cache_position, **flash_attn_kwargs)
 
 
-    def _augment_attention_mask(self, attention_mask) -> torch.Tensor:
+    def _augment_attention_mask(self, attention_mask) -> Any | None:
+        if attention_mask is None:
+            return attention_mask
+
+        attention_mask = attention_mask.repeat(1, 1, 1, (1+self.layer_idx)) # TODO validate memory and compute overhead
         return attention_mask
-
-
-
 
