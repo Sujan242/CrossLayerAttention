@@ -1,5 +1,6 @@
+from torch.nn import DataParallel
 from transformers import Trainer, TrainingArguments, LlamaConfig
-
+from torch.nn import DataParallel
 from utils.AdditionDataset import AdditionDataset
 from utils.AdditionDatasetEval import EvalAdditionDataset
 from utils.AdditionEvalCallback import AdditionEvalCallback
@@ -38,8 +39,15 @@ if __name__ == "__main__":
     # get the config path from the script arguments
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    num_gpus = 0
+    gpu_ids = [0, 1, 2, 3]
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        num_gpus = min(4, torch.cuda.device_count())
+        gpu_ids = gpu_ids[:num_gpus]
 
-    print("running on device:", device)
+
+    print(f"running on device:{device} with {num_gpus} gpus")
 
     config_path = sys.argv[1]
     cfg = load_config(config_path)
@@ -89,6 +97,9 @@ if __name__ == "__main__":
         print("loading previous weights")
         model.load_state_dict(torch.load(cfg.eval_configs.save_path))
 
+    if num_gpus > 1:
+        print("using DataParallel training")
+        model = DataParallel(model, device_ids=gpu_ids)
 
     training_args = TrainingArguments(
         output_dir=cfg.training_configs.output_dir,
@@ -101,5 +112,3 @@ if __name__ == "__main__":
     )
 
     train(train_dataset, model, eval_callback, training_args)
-
-# python3 train.py configs/addition/addition_1000.yaml
