@@ -3,6 +3,7 @@ from transformers import Trainer, TrainingArguments, LlamaConfig
 from utils.AdditionDataset import AdditionDataset
 from utils.AdditionDatasetEval import EvalAdditionDataset
 from utils.AdditionEvalCallback import AdditionEvalCallback
+from utils.AdditionEvalCallbackActual import AdditionEvalCallbackActual
 from model.SmallScaleLlama import LlamaWithAllLayerCrossAttention, LlamaWithPreviousLayerCrossAttention
 from types import SimpleNamespace
 import yaml
@@ -45,6 +46,14 @@ if __name__ == "__main__":
 
     train_dataset = AdditionDataset(cfg.data_configs.train_data_path, max_sequence_length=cfg.data_configs.max_sequence_length)
 
+    eval_dataset = EvalAdditionDataset(
+        file_path=cfg.data_configs.test_data_path,
+        token_to_id=train_dataset.token_to_id,
+        id_to_token=train_dataset.id_to_token,
+        pad_token_id=train_dataset.pad_token_id,
+        eos_token_id=train_dataset.eos_token_id
+    )
+
     if cfg.model_configs.mode == "all":
         model = LlamaWithAllLayerCrossAttention(vocab_size=train_dataset.vocab_size,
                                                 hidden_size=cfg.model_configs.hidden_size,
@@ -53,6 +62,10 @@ if __name__ == "__main__":
                                                 attention_dropout=cfg.model_configs.attention_dropout,
                                                 hidden_dropout=cfg.model_configs.hidden_dropout,
                                                 ).to(device)
+        eval_callback = AdditionEvalCallback(eval_dataset,
+                                             max_answer_length=cfg.eval_configs.max_answer_length,
+                                             eval_interval=cfg.eval_configs.eval_interval,
+                                             save_path=cfg.eval_configs.save_path)
     elif cfg.model_configs.mode == "previous":
         config = LlamaConfig(
                 vocab_size=train_dataset.vocab_size,
@@ -65,25 +78,17 @@ if __name__ == "__main__":
                 eos_token_id=train_dataset.eos_token_id
             )
         model = LlamaWithPreviousLayerCrossAttention(config).to(device)
+        eval_callback = AdditionEvalCallbackActual(eval_dataset,
+                                             max_answer_length=cfg.eval_configs.max_answer_length,
+                                             eval_interval=cfg.eval_configs.eval_interval,
+                                             save_path=cfg.eval_configs.save_path)
     else:
         raise ValueError("Invalid mode")
-
-    eval_dataset = EvalAdditionDataset(
-        file_path=cfg.data_configs.test_data_path,
-        token_to_id=train_dataset.token_to_id,
-        id_to_token=train_dataset.id_to_token,
-        pad_token_id=train_dataset.pad_token_id,
-        eos_token_id=train_dataset.eos_token_id
-    )
 
     if os.path.exists(cfg.eval_configs.save_path):
         print("loading previous weights")
         model.load_state_dict(torch.load(cfg.eval_configs.save_path))
 
-    eval_callback = AdditionEvalCallback(eval_dataset,
-                                         max_answer_length=cfg.eval_configs.max_answer_length,
-                                         eval_interval=cfg.eval_configs.eval_interval,
-                                         save_path=cfg.eval_configs.save_path)
 
     training_args = TrainingArguments(
         output_dir=cfg.training_configs.output_dir,
