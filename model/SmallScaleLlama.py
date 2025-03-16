@@ -1,11 +1,14 @@
+from typing import Optional
+
 import torch
 import torch.nn as nn
-from transformers import LlamaConfig, LlamaModel, LlamaPreTrainedModel
+from transformers import LlamaConfig, LlamaModel, LlamaPreTrainedModel, LlamaForCausalLM, GenerationMixin
+from transformers.models.llama.modeling_llama import LlamaDecoderLayer
 
 from .CustomDynamicCache import CustomDynamicCache
 
 
-class CustomLlama(LlamaPreTrainedModel):
+class LlamaWithAllLayerCrossAttention(LlamaPreTrainedModel):
     def __init__(self, vocab_size, hidden_size=512, num_attention_heads=5,
                  num_hidden_layers=4,
                  attention_dropout=0.1,
@@ -34,9 +37,6 @@ class CustomLlama(LlamaPreTrainedModel):
         logits = []
 
         device = input_ids.device
-
-        # Initialize position_ids
-        # position_ids = attention_mask.cumsum(dim=1) - 1 if attention_mask is not None else None
 
         for t in range(seq_len):
             # Get current token for all batches
@@ -137,3 +137,67 @@ class CustomLlama(LlamaPreTrainedModel):
             )
 
         return generated_ids
+
+class LlamaWithPreviousLayerCrossAttention(LlamaPreTrainedModel, GenerationMixin):
+    def __init__(self, vocab_size, hidden_size=512, num_attention_heads=5,
+                 num_hidden_layers=4,
+                 attention_dropout=0.1,
+                 hidden_dropout=0.1):
+
+        # Create configuration
+        self.config = LlamaConfig(
+            vocab_size=vocab_size,
+            hidden_size=hidden_size,
+            num_attention_heads=num_attention_heads,
+            num_hidden_layers=num_hidden_layers,
+            attention_dropout=attention_dropout,  # Add dropout
+            hidden_dropout=hidden_dropout,
+        )
+        super().__init__(self.config)
+        self.embed_tokens = nn.Embedding(vocab_size, hidden_size)
+        self.llama_model_for_causal = LlamaForCausalLM(self.config)
+        decoder = self.llama_model_for_causal.get_decoder()
+        decoder.layers = nn.ModuleList(
+            [LlamaDecoderLayer(self.config, layer_idx) for layer_idx in range(self.config.num_hidden_layers)]
+        )
+
+        self.llama_model_for_causal.set_decoder(decoder)
+        self.post_init()
+
+    def forward(self, input_ids, attention_mask=None, labels=None):
+        embeds = self.embed_tokens(input_ids.unsqueeze(-1))
+        dynamic_cache = CustomDynamicCache() #TODO pass in mode here
+        return self.llama_model_for_causal(
+            inputs_embeds=embeds,
+            attention_mask=attention_mask,
+            past_key_values=dynamic_cache,
+            use_cache=True
+        )
+
+
+class CustomLlamaDecoder(LlamaDecoderLayer):
+
+    def forward(
+            self,
+            input_ids: torch.LongTensor = None,
+            attention_mask: Optional[torch.Tensor] = None,
+            position_ids: Optional[torch.LongTensor] = None,
+            past_key_values= None,
+            inputs_embeds: Optional[torch.FloatTensor] = None,
+            use_cache: Optional[bool] = None,
+            output_attentions: Optional[bool] = None,
+            output_hidden_states: Optional[bool] = None,
+            return_dict: Optional[bool] = None,
+            cache_position: Optional[torch.LongTensor] = None,
+            **flash_attn_kwargs,
+    ) :
+        attention_mask = self._augment_attention_mask(attention_mask)
+        return super().forward(input_ids=input_ids, attention_mask=attention_mask, position_ids=position_ids, past_key_values=past_key_values, inputs_embeds=inputs_embeds, use_cache=use_cache, output_attentions=output_attentions, output_hidden_states=output_hidden_states, return_dict=return_dict, cache_position=cache_position, **flash_attn_kwargs)
+
+
+    def _augment_attention_mask(self, attention_mask) -> torch.Tensor:
+        return attention_mask
+
+
+
+

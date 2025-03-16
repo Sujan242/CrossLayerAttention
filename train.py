@@ -3,7 +3,7 @@ from transformers import Trainer, TrainingArguments
 from utils.AdditionDataset import AdditionDataset
 from utils.AdditionDatasetEval import EvalAdditionDataset
 from utils.AdditionEvalCallback import AdditionEvalCallback
-from model.SmallScaleLlama import CustomLlama
+from model.SmallScaleLlama import LlamaWithAllLayerCrossAttention
 from types import SimpleNamespace
 import yaml
 import sys
@@ -35,6 +35,11 @@ def train(train_dataset, model, eval_callback, training_args):
 
 if __name__ == "__main__":
     # get the config path from the script arguments
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    print("running on device:", device)
+
     config_path = sys.argv[1]
     cfg = load_config(config_path)
 
@@ -47,17 +52,14 @@ if __name__ == "__main__":
         eos_token_id=train_dataset.eos_token_id
     )
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    print("running on device:", device)
-
-    model = CustomLlama(vocab_size=train_dataset.vocab_size,
-                        hidden_size=cfg.model_configs.hidden_size,
-                        num_attention_heads=cfg.model_configs.num_attention_heads,
-                        num_hidden_layers=cfg.model_configs.num_hidden_layers,
-                        attention_dropout=cfg.model_configs.attention_dropout,
-                        hidden_dropout=cfg.model_configs.hidden_dropout,
-                        ).to(device)
+    model = LlamaWithAllLayerCrossAttention(vocab_size=train_dataset.vocab_size,
+                                            hidden_size=cfg.model_configs.hidden_size,
+                                            num_attention_heads=cfg.model_configs.num_attention_heads,
+                                            num_hidden_layers=cfg.model_configs.num_hidden_layers,
+                                            attention_dropout=cfg.model_configs.attention_dropout,
+                                            hidden_dropout=cfg.model_configs.hidden_dropout,
+                                            ).to(device)
 
     if os.path.exists(cfg.eval_configs.save_path):
         print("loading previous weights")
