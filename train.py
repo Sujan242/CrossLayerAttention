@@ -1,9 +1,9 @@
-from transformers import Trainer, TrainingArguments
+from transformers import Trainer, TrainingArguments, LlamaConfig
 
 from utils.AdditionDataset import AdditionDataset
 from utils.AdditionDatasetEval import EvalAdditionDataset
 from utils.AdditionEvalCallback import AdditionEvalCallback
-from model.SmallScaleLlama import LlamaWithAllLayerCrossAttention
+from model.SmallScaleLlama import LlamaWithAllLayerCrossAttention, LlamaWithPreviousLayerCrossAttention
 from types import SimpleNamespace
 import yaml
 import sys
@@ -44,6 +44,30 @@ if __name__ == "__main__":
     cfg = load_config(config_path)
 
     train_dataset = AdditionDataset(cfg.data_configs.train_data_path, max_sequence_length=cfg.data_configs.max_sequence_length)
+
+    if cfg.model_configs.mode == "all":
+        model = LlamaWithAllLayerCrossAttention(vocab_size=train_dataset.vocab_size,
+                                                hidden_size=cfg.model_configs.hidden_size,
+                                                num_attention_heads=cfg.model_configs.num_attention_heads,
+                                                num_hidden_layers=cfg.model_configs.num_hidden_layers,
+                                                attention_dropout=cfg.model_configs.attention_dropout,
+                                                hidden_dropout=cfg.model_configs.hidden_dropout,
+                                                ).to(device)
+    elif cfg.model_configs.mode == "previous":
+        config = LlamaConfig(
+                vocab_size=train_dataset.vocab_size,
+                hidden_size=cfg.model_configs.hidden_size,
+                num_attention_heads=cfg.model_configs.num_attention_heads,
+                num_hidden_layers=cfg.model_configs.num_hidden_layers,
+                attention_dropout=cfg.model_configs.attention_dropout,
+                hidden_dropout=cfg.model_configs.hidden_dropout,
+                pad_token_id=train_dataset.pad_token_id,
+                eos_token_id=train_dataset.eos_token_id
+            )
+        model = LlamaWithPreviousLayerCrossAttention(config).to(device)
+    else:
+        raise ValueError("Invalid mode")
+
     eval_dataset = EvalAdditionDataset(
         file_path=cfg.data_configs.test_data_path,
         token_to_id=train_dataset.token_to_id,
@@ -51,25 +75,6 @@ if __name__ == "__main__":
         pad_token_id=train_dataset.pad_token_id,
         eos_token_id=train_dataset.eos_token_id
     )
-
-
-    model = LlamaWithAllLayerCrossAttention(vocab_size=train_dataset.vocab_size,
-                                            hidden_size=cfg.model_configs.hidden_size,
-                                            num_attention_heads=cfg.model_configs.num_attention_heads,
-                                            num_hidden_layers=cfg.model_configs.num_hidden_layers,
-                                            attention_dropout=cfg.model_configs.attention_dropout,
-                                            hidden_dropout=cfg.model_configs.hidden_dropout,
-                                            ).to(device)
-
-    # self.config = LlamaConfig(
-    #             vocab_size=vocab_size,
-    #             hidden_size=hidden_size,
-    #             num_attention_heads=num_attention_heads,
-    #             num_hidden_layers=num_hidden_layers,
-    #             attention_dropout=attention_dropout,
-    #             hidden_dropout=hidden_dropout,
-    #             pad_token_id=0,
-    #         )
 
     if os.path.exists(cfg.eval_configs.save_path):
         print("loading previous weights")
