@@ -61,6 +61,16 @@ if __name__ == "__main__":
                                             hidden_dropout=cfg.model_configs.hidden_dropout,
                                             ).to(device)
 
+    # self.config = LlamaConfig(
+    #             vocab_size=vocab_size,
+    #             hidden_size=hidden_size,
+    #             num_attention_heads=num_attention_heads,
+    #             num_hidden_layers=num_hidden_layers,
+    #             attention_dropout=attention_dropout,
+    #             hidden_dropout=hidden_dropout,
+    #             pad_token_id=0,
+    #         )
+
     if os.path.exists(cfg.eval_configs.save_path):
         print("loading previous weights")
         model.load_state_dict(torch.load(cfg.eval_configs.save_path))
