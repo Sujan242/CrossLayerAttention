@@ -94,14 +94,6 @@ class LlamaWithAllLayerCrossAttention(LlamaPreTrainedModel):
         generated_ids = []
         dynamic_cache = CustomDynamicCache()  # Initialize cache
 
-        # input_embeds = self.embed_tokens(input_ids)
-        # outputs = self.llama_model(
-        #     inputs_embeds=input_embeds,
-        #     attention_mask=attention_mask,
-        #     past_key_values=dynamic_cache,
-        #     use_cache=True
-        # )
-        # TODO parallel - prefilling
         for t in range(input_ids.shape[1]):
             current_input = input_ids[:, t].unsqueeze(1)
 
@@ -163,7 +155,7 @@ class LlamaWithPreviousLayerCrossAttention(LlamaForCausalLM):
         logits_to_keep: Union[int, torch.Tensor] = 0,
         **kwargs,
     ):
-        past_key_values = CustomDynamicCache() # TODO pass in mode here
+        past_key_values = CustomDynamicCache('previous')
         return super().forward(input_ids=input_ids, attention_mask=attention_mask, position_ids=position_ids, past_key_values=past_key_values, inputs_embeds=inputs_embeds, labels=labels, use_cache=use_cache, output_attentions=output_attentions, output_hidden_states=output_hidden_states, return_dict=return_dict, cache_position=cache_position, logits_to_keep=logits_to_keep, **kwargs)
 
 
