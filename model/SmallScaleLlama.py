@@ -155,7 +155,8 @@ class LlamaWithPreviousLayerCrossAttention(LlamaForCausalLM):
         logits_to_keep: Union[int, torch.Tensor] = 0,
         **kwargs,
     ):
-        past_key_values = CustomDynamicCache('previous')
+
+        past_key_values = CustomDynamicCache(mode='previous', training=self.model.training)
         return super().forward(input_ids=input_ids, attention_mask=attention_mask, position_ids=position_ids, past_key_values=past_key_values, inputs_embeds=inputs_embeds, labels=labels, use_cache=use_cache, output_attentions=output_attentions, output_hidden_states=output_hidden_states, return_dict=return_dict, cache_position=cache_position, logits_to_keep=logits_to_keep, **kwargs)
 
 
@@ -178,9 +179,21 @@ class CustomLlamaDecoder(LlamaDecoderLayer):
 
 
     def _augment_attention_mask(self, attention_mask) -> Any | None:
-        if attention_mask is None:
+        if attention_mask is None or self.self_attn.layer_idx == 0:
             return attention_mask
+        batch_size, _, num_tokens, _ = attention_mask.shape
+        # clone attention mask
+        attention_mask_clone = attention_mask.clone()
 
-        attention_mask = attention_mask.repeat(1, 1, 1, (1+self.self_attn.layer_idx)) # TODO validate memory and compute overhead
+        # set all the diagnol elements to -inf
+        diag_mask = torch.eye(num_tokens, dtype=torch.bool, device=attention_mask.device)
+        attention_mask_clone = attention_mask_clone.masked_fill(diag_mask[None, None, :, :], torch.finfo(attention_mask.dtype).min)
+
+        # repeat attention mask clone for layer_idx times
+        attention_mask_clone = attention_mask_clone.repeat(1, 1, 1, self.self_attn.layer_idx)
+
+        # append the original attention mask to the repeated attention mask
+        attention_mask = torch.cat([attention_mask_clone, attention_mask], dim=-1) # TODO validate memory and compute overhead
+
         return attention_mask
 
