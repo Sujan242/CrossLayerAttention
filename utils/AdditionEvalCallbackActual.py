@@ -17,7 +17,7 @@ class AdditionEvalCallbackActual(TrainerCallback):
     def on_epoch_end(self, args, state, control, **kwargs):
         if (1 + state.epoch) % self.eval_interval != 0:
             return control
-        model = kwargs['model']
+        model = kwargs['model'].module if hasattr(kwargs['model'], 'module') else kwargs['model'] 
         device = next(model.parameters()).device
         total, correct = 0, 0
 
