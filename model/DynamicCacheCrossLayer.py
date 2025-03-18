@@ -3,7 +3,7 @@ import torch
 from typing import Dict, Any, Optional, Tuple
 
 
-class CustomDynamicCache(DynamicCache):
+class DynamicCacheCrossLayer(DynamicCache):
 
     def __init__(self, mode='all', training='true', num_hidden_layers=None):
         super().__init__(num_hidden_layers)

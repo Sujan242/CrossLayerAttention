@@ -4,7 +4,7 @@ import torch
 from torch.nn import DataParallel
 from transformers import LlamaConfig, LlamaForCausalLM
 
-from model.SmallScaleLlama import LlamaWithAllLayerCrossAttention, LlamaWithPreviousLayerCrossAttention
+from model.model import LlamaWithAllLayerCrossAttention, LlamaWithPreviousLayerCrossAttention
 from utils.AdditionDataset import AdditionDataset
 from utils.AdditionDatasetEval import EvalAdditionDataset
 from utils.AdditionEvalCallbackActual import AdditionEvalCallbackActual
@@ -27,7 +27,7 @@ def get_train_and_eval_callback(cfg):
                                                eval_interval=cfg.eval_configs.eval_interval,
                                                save_path=cfg.eval_configs.save_path)
 
-    return train_dataset, eval_dataset, eval_callback
+    return train_dataset, eval_callback
 
 def get_model(train_dataset, cfg, num_gpus, gpu_ids, device):
     config = LlamaConfig(
@@ -57,3 +57,5 @@ def get_model(train_dataset, cfg, num_gpus, gpu_ids, device):
     if num_gpus > 1:
         print("using DataParallel training")
         model = DataParallel(model, device_ids=gpu_ids)
+
+    return model

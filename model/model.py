@@ -5,9 +5,7 @@ import torch.nn as nn
 from transformers import LlamaConfig, LlamaForCausalLM
 from transformers.modeling_outputs import CausalLMOutputWithPast
 from transformers.models.llama.modeling_llama import LlamaDecoderLayer
-
-from .CustomDynamicCache import CustomDynamicCache
-
+from .DynamicCacheCrossLayer import DynamicCacheCrossLayer
 
 class LlamaWithAllLayerCrossAttention(LlamaForCausalLM):
 
@@ -34,7 +32,7 @@ class LlamaWithAllLayerCrossAttention(LlamaForCausalLM):
     ):
         batch_size, seq_len = input_ids.shape
         if past_key_values is None:
-            past_key_values = CustomDynamicCache(mode='all', training=self.training)
+            past_key_values = DynamicCacheCrossLayer(mode='all', training=self.training)
         device = input_ids.device
         loss = 0 # Initialize loss
         logits = []
@@ -90,7 +88,7 @@ class LlamaWithPreviousLayerCrossAttention(LlamaForCausalLM):
         **kwargs,
     ):
         if past_key_values is None:
-            past_key_values = CustomDynamicCache(mode='previous', training=self.model.training)
+            past_key_values = DynamicCacheCrossLayer(mode='previous', training=self.model.training)
         return super().forward(input_ids=input_ids, attention_mask=attention_mask, position_ids=position_ids, past_key_values=past_key_values, inputs_embeds=inputs_embeds, labels=labels, use_cache=use_cache, output_attentions=output_attentions, output_hidden_states=output_hidden_states, return_dict=return_dict, cache_position=cache_position, logits_to_keep=logits_to_keep, **kwargs)
 
 

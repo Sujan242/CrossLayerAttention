@@ -58,6 +58,6 @@ if __name__ == "__main__":
 
     train_dataset, eval_callback = get_train_and_eval_callback(cfg)
 
-    model = get_model(train_dataset, cfg, device, num_gpus, gpu_ids, device)
+    model = get_model(train_dataset, cfg, num_gpus, gpu_ids, device)
 
     train(train_dataset, model, eval_callback)
