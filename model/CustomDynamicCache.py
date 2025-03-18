@@ -48,6 +48,7 @@ class CustomDynamicCache(DynamicCache):
                                                    dim=2)
             else:
                 raise ValueError(f"Invalid mode {self.mode}")
+
             concatenated_keys = torch.cat([prev_token_key_cache, self.key_cache[layer_idx]], dim=2)
             concatenated_values = torch.cat([prev_token_value_cache, self.value_cache[layer_idx]], dim=-2)
             return concatenated_keys, concatenated_values # TODO validate memory and compute overhead
