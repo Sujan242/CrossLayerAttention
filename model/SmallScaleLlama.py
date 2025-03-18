@@ -11,6 +11,11 @@ from .CustomDynamicCache import CustomDynamicCache
 
 class LlamaWithAllLayerCrossAttention(LlamaForCausalLM):
 
+    def __init__(self, config: LlamaConfig):
+        # Create configuration
+        super().__init__(config)
+        self.loss_type = "ForMaskedLM"
+
     def forward(
             self,
             input_ids: torch.LongTensor = None,
