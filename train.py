@@ -1,5 +1,5 @@
 from torch.nn import DataParallel
-from transformers import Trainer, TrainingArguments, LlamaConfig
+from transformers import Trainer, TrainingArguments, LlamaConfig, LlamaForCausalLM
 from torch.nn import DataParallel
 from utils.AdditionDataset import AdditionDataset
 from utils.AdditionDatasetEval import EvalAdditionDataset
@@ -61,8 +61,17 @@ if __name__ == "__main__":
         pad_token_id=train_dataset.pad_token_id,
         eos_token_id=train_dataset.eos_token_id
     )
-
-    if cfg.model_configs.mode == "all":
+    config = LlamaConfig(
+        vocab_size=train_dataset.vocab_size,
+        hidden_size=cfg.model_configs.hidden_size,
+        num_attention_heads=cfg.model_configs.num_attention_heads,
+        num_hidden_layers=cfg.model_configs.num_hidden_layers,
+        attention_dropout=cfg.model_configs.attention_dropout,
+        hidden_dropout=cfg.model_configs.hidden_dropout,
+        pad_token_id=train_dataset.pad_token_id,
+        eos_token_id=train_dataset.eos_token_id
+    )
+    if cfg.model_configs.mode == "full":
         model = LlamaWithAllLayerCrossAttention(vocab_size=train_dataset.vocab_size,
                                                 hidden_size=cfg.model_configs.hidden_size,
                                                 num_attention_heads=cfg.model_configs.num_attention_heads,
@@ -75,21 +84,17 @@ if __name__ == "__main__":
                                              eval_interval=cfg.eval_configs.eval_interval,
                                              save_path=cfg.eval_configs.save_path)
     elif cfg.model_configs.mode == "previous":
-        config = LlamaConfig(
-                vocab_size=train_dataset.vocab_size,
-                hidden_size=cfg.model_configs.hidden_size,
-                num_attention_heads=cfg.model_configs.num_attention_heads,
-                num_hidden_layers=cfg.model_configs.num_hidden_layers,
-                attention_dropout=cfg.model_configs.attention_dropout,
-                hidden_dropout=cfg.model_configs.hidden_dropout,
-                pad_token_id=train_dataset.pad_token_id,
-                eos_token_id=train_dataset.eos_token_id
-            )
         model = LlamaWithPreviousLayerCrossAttention(config).to(device)
         eval_callback = AdditionEvalCallbackActual(eval_dataset,
                                              max_answer_length=cfg.eval_configs.max_answer_length,
                                              eval_interval=cfg.eval_configs.eval_interval,
                                              save_path=cfg.eval_configs.save_path)
+    elif cfg.model_configs.mode == "traditional":
+        model = LlamaForCausalLM(config).to(device)
+        eval_callback = AdditionEvalCallbackActual(eval_dataset,
+                                                   max_answer_length=cfg.eval_configs.max_answer_length,
+                                                   eval_interval=cfg.eval_configs.eval_interval,
+                                                   save_path=cfg.eval_configs.save_path)
     else:
         raise ValueError("Invalid mode")
 

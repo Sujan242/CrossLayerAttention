@@ -8,7 +8,7 @@ from transformers.models.llama.modeling_llama import LlamaDecoderLayer
 from .CustomDynamicCache import CustomDynamicCache
 
 
-class LlamaWithAllLayerCrossAttention(LlamaPreTrainedModel):
+class LlamaWithAllLayerCrossAttention(LlamaPreTrainedModel): # TODO change to use LlamaForCausalLM, with token loss
     def __init__(self, vocab_size, hidden_size=512, num_attention_heads=5,
                  num_hidden_layers=4,
                  attention_dropout=0.1,
@@ -155,7 +155,6 @@ class LlamaWithPreviousLayerCrossAttention(LlamaForCausalLM):
         logits_to_keep: Union[int, torch.Tensor] = 0,
         **kwargs,
     ):
-
         past_key_values = CustomDynamicCache(mode='previous', training=self.model.training)
         return super().forward(input_ids=input_ids, attention_mask=attention_mask, position_ids=position_ids, past_key_values=past_key_values, inputs_embeds=inputs_embeds, labels=labels, use_cache=use_cache, output_attentions=output_attentions, output_hidden_states=output_hidden_states, return_dict=return_dict, cache_position=cache_position, logits_to_keep=logits_to_keep, **kwargs)
 
@@ -177,8 +176,7 @@ class CustomLlamaDecoder(LlamaDecoderLayer):
         attention_mask = self._augment_attention_mask(attention_mask)
         return super().forward(hidden_states, attention_mask, position_ids, past_key_value, output_attentions, use_cache, cache_position, position_embeddings, **kwargs)
 
-
-    def _augment_attention_mask(self, attention_mask) -> Any | None:
+    def _augment_attention_mask(self, attention_mask):
         if attention_mask is None or self.self_attn.layer_idx == 0:
             return attention_mask
         batch_size, _, num_tokens, _ = attention_mask.shape
