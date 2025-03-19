@@ -5,10 +5,10 @@ from typing import Dict, Any, Optional, Tuple
 
 class DynamicCacheCrossLayer(DynamicCache):
 
-    def __init__(self, mode='all', training='true', num_hidden_layers=None):
+    def __init__(self, mode='all', equivalent_to_training=False, num_hidden_layers=None):
         super().__init__(num_hidden_layers)
         self.mode = mode
-        self.training = training
+        self.equivalent_to_training = equivalent_to_training
 
     def update(
             self,
@@ -35,7 +35,7 @@ class DynamicCacheCrossLayer(DynamicCache):
                 if layer_idx == 0:
                     return self.key_cache[layer_idx], self.value_cache[layer_idx]
 
-                if self.training:
+                if self.equivalent_to_training:
                     upto_token = self._seen_tokens
                 else:
                     upto_token = self._seen_tokens - 1
@@ -54,3 +54,6 @@ class DynamicCacheCrossLayer(DynamicCache):
             return concatenated_keys, concatenated_values # TODO validate memory and compute overhead
 
         return self.key_cache[layer_idx], self.value_cache[layer_idx]
+
+    def set_equivalent_to_training(self, equivalent_to_training):
+        self.equivalent_to_training = equivalent_to_training

@@ -6,6 +6,7 @@ from transformers import LlamaConfig, LlamaForCausalLM
 from transformers.modeling_outputs import CausalLMOutputWithPast
 from transformers.models.llama.modeling_llama import LlamaDecoderLayer
 from .DynamicCacheCrossLayer import DynamicCacheCrossLayer
+import matplotlib.pyplot as plt
 
 class LlamaWithAllLayerCrossAttention(LlamaForCausalLM):
 
@@ -67,7 +68,7 @@ class LlamaWithPreviousLayerCrossAttention(LlamaForCausalLM):
         # Create configuration
         super().__init__(config)
         self.model.layers = nn.ModuleList(
-            [CustomLlamaDecoder(config, layer_idx) for layer_idx in range(config.num_hidden_layers)]
+            [LlamaDecoderForPreviousLayerAttention(config, layer_idx) for layer_idx in range(config.num_hidden_layers)]
         )
         self.post_init()
 
@@ -76,7 +77,7 @@ class LlamaWithPreviousLayerCrossAttention(LlamaForCausalLM):
         input_ids: torch.LongTensor = None,
         attention_mask: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.LongTensor] = None,
-        past_key_values= None,
+        past_key_values: Optional[DynamicCacheCrossLayer] = None,
         inputs_embeds: Optional[torch.FloatTensor] = None,
         labels: Optional[torch.LongTensor] = None,
         use_cache: Optional[bool] = None,
@@ -87,13 +88,17 @@ class LlamaWithPreviousLayerCrossAttention(LlamaForCausalLM):
         logits_to_keep: Union[int, torch.Tensor] = 0,
         **kwargs,
     ):
+        # Hack to check if prefilling or not. just check if the KV cache is None
         if past_key_values is None:
-            past_key_values = DynamicCacheCrossLayer(mode='previous', training=self.model.training)
+            past_key_values = DynamicCacheCrossLayer(mode='previous', equivalent_to_training=True)
+        else:
+            past_key_values.set_prefilling(False)
+
         return super().forward(input_ids=input_ids, attention_mask=attention_mask, position_ids=position_ids, past_key_values=past_key_values, inputs_embeds=inputs_embeds, labels=labels, use_cache=use_cache, output_attentions=output_attentions, output_hidden_states=output_hidden_states, return_dict=return_dict, cache_position=cache_position, logits_to_keep=logits_to_keep, **kwargs)
 
 
 
-class CustomLlamaDecoder(LlamaDecoderLayer):
+class LlamaDecoderForPreviousLayerAttention(LlamaDecoderLayer):
 
     def forward(
             self,
@@ -128,3 +133,6 @@ class CustomLlamaDecoder(LlamaDecoderLayer):
 
         return attention_mask
 
+# print((attention_mask[0, 0] == 0).long())
+# plt.imshow((attention_mask[0, 0] == 0).long().detach().cpu().numpy())
+# plt.show()
