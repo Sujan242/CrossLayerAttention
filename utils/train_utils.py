@@ -58,8 +58,8 @@ def get_model(train_dataset, cfg, device):
         model.load_state_dict(torch.load(cfg.eval_configs.save_path))
 
     if torch.cuda.is_available():
-        gpu_ids = literal_eval(cfg.gpu_ids)
+        gpu_ids = cfg.gpu.ids
         print(f"using DataParallel training on GPUs: {gpu_ids}")
-        model = DataParallel(model, device_ids=literal_eval(gpu_ids))
+        model = DataParallel(model, device_ids=gpu_ids)
 
     return model

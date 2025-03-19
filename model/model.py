@@ -5,8 +5,9 @@ import torch.nn as nn
 from transformers import LlamaConfig, LlamaForCausalLM
 from transformers.modeling_outputs import CausalLMOutputWithPast
 from transformers.models.llama.modeling_llama import LlamaDecoderLayer
+
 from .DynamicCacheCrossLayer import DynamicCacheCrossLayer
-import matplotlib.pyplot as plt
+
 
 class LlamaWithAllLayerCrossAttention(LlamaForCausalLM):
 
@@ -33,7 +34,7 @@ class LlamaWithAllLayerCrossAttention(LlamaForCausalLM):
     ):
         batch_size, seq_len = input_ids.shape
         if past_key_values is None:
-            past_key_values = DynamicCacheCrossLayer(mode='all', training=self.training)
+            past_key_values = DynamicCacheCrossLayer(mode='all', equivalent_to_training=self.training)
         device = input_ids.device
         loss = 0 # Initialize loss
         logits = []
@@ -132,7 +133,3 @@ class LlamaDecoderForPreviousLayerAttention(LlamaDecoderLayer):
         attention_mask = torch.cat([attention_mask_clone, attention_mask], dim=-1) # TODO validate memory and compute overhead
 
         return attention_mask
-
-# print((attention_mask[0, 0] == 0).long())
-# plt.imshow((attention_mask[0, 0] == 0).long().detach().cpu().numpy())
-# plt.show()
