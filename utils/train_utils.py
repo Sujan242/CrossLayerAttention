@@ -33,6 +33,7 @@ def get_train_and_eval_callback(cfg):
     return train_dataset, eval_callback
 
 def get_model(train_dataset, cfg, device):
+    device = torch.device("cpu")
     config = LlamaConfig(
         vocab_size=train_dataset.vocab_size,
         hidden_size=cfg.model_configs.hidden_size,
@@ -57,9 +58,10 @@ def get_model(train_dataset, cfg, device):
         print("loading previous weights")
         model.load_state_dict(torch.load(cfg.eval_configs.save_path))
 
-    if torch.cuda.is_available():
-        gpu_ids = cfg.gpu.ids
-        print(f"using DataParallel training on GPUs: {gpu_ids}")
-        model = DataParallel(model, device_ids=gpu_ids)
+    # if torch.cuda.is_available():
+    #     gpu_ids = cfg.gpu.ids
+    #     print(f"using DataParallel training on GPUs: {gpu_ids}")
+    #     model = model.to(f'cuda:{gpu_ids[0]}')
+    #     model = DataParallel(model, device_ids=gpu_ids)
 
     return model

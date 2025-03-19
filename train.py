@@ -7,6 +7,8 @@ from transformers import Trainer, TrainingArguments
 
 from utils.train_utils import get_train_and_eval_callback, get_model
 
+import warnings
+warnings.filterwarnings('ignore')
 
 def load_config(config_path: str) -> SimpleNamespace:
     with open(config_path, 'r') as f:
