@@ -2,11 +2,12 @@ from torch.utils.data import Dataset
 import torch
 
 class EvalAdditionDataset(Dataset):
-    def __init__(self, file_path, token_to_id, id_to_token, pad_token_id, eos_token_id):
+    def __init__(self, file_path, token_to_id, id_to_token, pad_token_id, eos_token_id, max_length):
         self.token_to_id = token_to_id
         self.id_to_token = id_to_token
         self.pad_token_id = pad_token_id
         self.eos_token_id = eos_token_id
+        self.max_length = max_length
 
         self.lines = []
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -32,8 +33,13 @@ class EvalAdditionDataset(Dataset):
         answer = self.answers[idx]
 
         input_ids = [self.token_to_id[c] for c in question]
+        attention_mask = [1] * len(input_ids)
+        padding_length = self.max_length - len(input_ids)
+        input_ids = [self.pad_token_id] * padding_length + input_ids
+        attention_mask = [0] * padding_length + attention_mask
 
         return {
             "input_ids": torch.tensor(input_ids, dtype=torch.long),
+            "attention_mask": torch.tensor(attention_mask, dtype=torch.long),
             "answer": answer
         }

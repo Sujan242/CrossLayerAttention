@@ -22,5 +22,9 @@ data_configs:
 
 eval_configs:
   max_answer_length: 5
-  eval_interval: 100
+  eval_interval: 50
   save_path: "model_weights/addition_1000_previous_cross_attention.pth"
+  batch_size: 128
+
+gpu:
+  ids: [2,3]

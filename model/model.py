@@ -89,10 +89,10 @@ class LlamaWithPreviousLayerCrossAttention(LlamaForCausalLM):
         **kwargs,
     ):
         # Hack to check if prefilling or not. just check if the KV cache is None
-        if past_key_values is None:
+        if past_key_values is None or len(past_key_values.key_cache) == 0:
             past_key_values = DynamicCacheCrossLayer(mode='previous', equivalent_to_training=True)
         else:
-            past_key_values.set_prefilling(False)
+            past_key_values.set_equivalent_to_training(False)
 
         return super().forward(input_ids=input_ids, attention_mask=attention_mask, position_ids=position_ids, past_key_values=past_key_values, inputs_embeds=inputs_embeds, labels=labels, use_cache=use_cache, output_attentions=output_attentions, output_hidden_states=output_hidden_states, return_dict=return_dict, cache_position=cache_position, logits_to_keep=logits_to_keep, **kwargs)
 

@@ -8,6 +8,7 @@ from model.model import LlamaWithAllLayerCrossAttention, LlamaWithPreviousLayerC
 from utils.AdditionDataset import AdditionDataset
 from utils.AdditionDatasetEval import EvalAdditionDataset
 from utils.AdditionEvalCallbackActual import AdditionEvalCallbackActual
+from ast import literal_eval
 
 
 def get_train_and_eval_callback(cfg):
@@ -19,17 +20,19 @@ def get_train_and_eval_callback(cfg):
         token_to_id=train_dataset.token_to_id,
         id_to_token=train_dataset.id_to_token,
         pad_token_id=train_dataset.pad_token_id,
-        eos_token_id=train_dataset.eos_token_id
+        eos_token_id=train_dataset.eos_token_id,
+        max_length=cfg.data_configs.max_sequence_length
     )
 
     eval_callback = AdditionEvalCallbackActual(eval_dataset,
                                                max_answer_length=cfg.eval_configs.max_answer_length,
                                                eval_interval=cfg.eval_configs.eval_interval,
-                                               save_path=cfg.eval_configs.save_path)
+                                               save_path=cfg.eval_configs.save_path,
+                                               batch_size=cfg.eval_configs.batch_size)
 
     return train_dataset, eval_callback
 
-def get_model(train_dataset, cfg, num_gpus, gpu_ids, device):
+def get_model(train_dataset, cfg, device):
     config = LlamaConfig(
         vocab_size=train_dataset.vocab_size,
         hidden_size=cfg.model_configs.hidden_size,
@@ -54,8 +57,9 @@ def get_model(train_dataset, cfg, num_gpus, gpu_ids, device):
         print("loading previous weights")
         model.load_state_dict(torch.load(cfg.eval_configs.save_path))
 
-    if num_gpus > 1:
-        print("using DataParallel training")
-        model = DataParallel(model, device_ids=gpu_ids)
+    if torch.cuda.is_available():
+        gpu_ids = literal_eval(cfg.gpu_ids)
+        print(f"using DataParallel training on GPUs: {gpu_ids}")
+        model = DataParallel(model, device_ids=literal_eval(gpu_ids))
 
     return model

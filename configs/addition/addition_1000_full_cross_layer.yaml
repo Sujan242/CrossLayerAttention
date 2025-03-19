@@ -23,4 +23,8 @@ data_configs:
 eval_configs:
   max_answer_length: 5
   eval_interval: 100
-  save_path: "model_weights/addition_previous_layers_cross_attention.pth"
+  save_path: "model_weights/addition_full_cross_attention.pth"
+  batch_size: 128
+
+gpu:
+  ids: [0,1]

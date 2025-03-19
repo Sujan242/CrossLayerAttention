@@ -24,3 +24,7 @@ eval_configs:
   max_answer_length: 5
   eval_interval: 100
   save_path: "model_weights/addition_1000_traditional.pth"
+  batch_size: 128
+
+gpu:
+  ids: [4,5]

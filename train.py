@@ -44,20 +44,11 @@ if __name__ == "__main__":
     # get the config path from the script arguments
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    num_gpus = 0
-    gpu_ids = [0, 1, 2, 3]
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-        num_gpus = min(4, torch.cuda.device_count())
-        gpu_ids = gpu_ids[:num_gpus]
-
-    print(f"running on device:{device} with {num_gpus} gpus")
-
     config_path = sys.argv[1]
     cfg = load_config(config_path)
 
     train_dataset, eval_callback = get_train_and_eval_callback(cfg)
 
-    model = get_model(train_dataset, cfg, num_gpus, gpu_ids, device)
+    model = get_model(train_dataset, cfg, device)
 
     train(train_dataset, model, eval_callback)
