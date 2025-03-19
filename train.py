@@ -31,6 +31,7 @@ def train(train_dataset, val_dataset, model, eval_callback):
         num_train_epochs=cfg.training_configs.num_train_epochs,
         logging_dir=cfg.training_configs.logging_dir,
         remove_unused_columns=cfg.training_configs.remove_unused_columns,
+        dataloader_pin_memory=False,
     )
 
     trainer = Trainer(
@@ -38,20 +39,22 @@ def train(train_dataset, val_dataset, model, eval_callback):
         args=training_args,
         train_dataset=train_dataset,
         callbacks=[eval_callback],
-        val_dataset=val_dataset,
+        eval_dataset=val_dataset,
     )
 
     trainer.train()
 
 if __name__ == "__main__":
     # get the config path from the script arguments
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     config_path = sys.argv[1]
+
     cfg = load_config(config_path)
+
+    if torch.cuda.is_available():
+        torch.set_default_device(f'cuda:{cfg.gpu.ids[0]}')
 
     train_dataset, val_dataset, eval_callback = get_train_and_eval_callback(cfg)
 
-    model = get_model(train_dataset, cfg, device)
+    model = get_model(train_dataset, cfg)
 
     train(train_dataset, val_dataset, model, eval_callback)

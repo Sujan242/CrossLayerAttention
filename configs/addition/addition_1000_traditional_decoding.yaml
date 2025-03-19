@@ -16,15 +16,17 @@ training_configs:
   remove_unused_columns: false
 
 data_configs:
-  train_data_path: "data/addition/train_3digit_10000.txt"
-  test_data_path: "data/addition/test_3digit_10000.txt"
+  train_data_path: "data/addition_script/train_reversed_addition.txt"
+  val_data_path: "data/addition_script/val_reversed_addition.txt"
+  test_data_path: "data/addition_script/test_reversed_addition.txt"
   max_sequence_length: 20
+
 
 eval_configs:
   max_answer_length: 5
   eval_interval: 100
-  save_path: "model_weights/addition_1000_traditional.pth"
+  save_path: "model_weights/addition_1000_traditional_stratified.pth"
   batch_size: 128
 
 gpu:
-  ids: [4,5]
+   ids: [0,1,2,3]

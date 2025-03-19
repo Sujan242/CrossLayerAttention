@@ -21,7 +21,7 @@ def load_config(config_path: str) -> SimpleNamespace:
 
 def evaluate(eval_dataset, model_path, cfg, train_dataset):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = get_model(train_dataset, cfg, device)
+    model = get_model(train_dataset, cfg)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
     total, correct = 0, 0

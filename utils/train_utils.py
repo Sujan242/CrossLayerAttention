@@ -8,14 +8,13 @@ from model.model import LlamaWithAllLayerCrossAttention, LlamaWithPreviousLayerC
 from utils.AdditionDataset import AdditionDataset
 from utils.AdditionDatasetEval import EvalAdditionDataset
 from utils.AdditionEvalCallbackActual import AdditionEvalCallbackActual
-from ast import literal_eval
 
 
 def get_train_and_eval_callback(cfg):
     # create set of all characters - 256 ASCII characters
     characters = set([chr(i) for i in range(256)])
     special_tokens = ['<PAD>', '<EOS>']
-    vocab = special_tokens + characters
+    vocab = special_tokens + sorted(characters)
     token_to_id = {char: idx for idx, char in enumerate(vocab)}
     id_to_token = {idx: char for idx, char in enumerate(vocab)}
 
@@ -48,8 +47,7 @@ def get_train_and_eval_callback(cfg):
 
     return train_dataset, val_dataset, eval_callback
 
-def get_model(train_dataset, cfg, device):
-    # device = torch.device("cpu")
+def get_model(train_dataset, cfg):
     config = LlamaConfig(
         vocab_size=train_dataset.vocab_size,
         hidden_size=cfg.model_configs.hidden_size,
@@ -77,7 +75,8 @@ def get_model(train_dataset, cfg, device):
     if torch.cuda.is_available():
          gpu_ids = cfg.gpu.ids
          print(f"using DataParallel training on GPUs: {gpu_ids}")
-         model = model.to(f'cuda:{gpu_ids[0]}')
+         device = torch.device(f'cuda:{gpu_ids[0]}')
+         model = model.to(device)
          model = DataParallel(model, device_ids=gpu_ids)
 
     return model
