@@ -21,7 +21,7 @@ def load_config(config_path: str) -> SimpleNamespace:
     return SimpleNamespace(**config)
 
 
-def train(train_dataset, model, eval_callback):
+def train(train_dataset, val_dataset, model, eval_callback):
 
     training_args = TrainingArguments(
         output_dir=cfg.training_configs.output_dir,
@@ -30,14 +30,15 @@ def train(train_dataset, model, eval_callback):
         learning_rate=float(cfg.training_configs.learning_rate),
         num_train_epochs=cfg.training_configs.num_train_epochs,
         logging_dir=cfg.training_configs.logging_dir,
-        remove_unused_columns=cfg.training_configs.remove_unused_columns
+        remove_unused_columns=cfg.training_configs.remove_unused_columns,
     )
 
     trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
-        callbacks=[eval_callback]
+        callbacks=[eval_callback],
+        val_dataset=val_dataset,
     )
 
     trainer.train()
@@ -49,8 +50,8 @@ if __name__ == "__main__":
     config_path = sys.argv[1]
     cfg = load_config(config_path)
 
-    train_dataset, eval_callback = get_train_and_eval_callback(cfg)
+    train_dataset, val_dataset, eval_callback = get_train_and_eval_callback(cfg)
 
     model = get_model(train_dataset, cfg, device)
 
-    train(train_dataset, model, eval_callback)
+    train(train_dataset, val_dataset, model, eval_callback)

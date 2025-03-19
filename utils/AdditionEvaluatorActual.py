@@ -3,11 +3,10 @@ from types import SimpleNamespace
 
 import torch
 import yaml
-from transformers import LlamaConfig
 
-from model.SmallScaleLlama import LlamaWithAllLayerCrossAttention, LlamaWithPreviousLayerCrossAttention
 from utils.AdditionDataset import AdditionDataset
 from utils.AdditionDatasetEval import EvalAdditionDataset
+from utils.train_utils import get_model
 
 
 def load_config(config_path: str) -> SimpleNamespace:
@@ -21,20 +20,8 @@ def load_config(config_path: str) -> SimpleNamespace:
     return SimpleNamespace(**config)
 
 def evaluate(eval_dataset, model_path, cfg, train_dataset):
-    id_to_token = eval_dataset.id_to_token
-    eos_token_id = eval_dataset.eos_token_id
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    config = LlamaConfig(
-        vocab_size=train_dataset.vocab_size,
-        hidden_size=cfg.model_configs.hidden_size,
-        num_attention_heads=cfg.model_configs.num_attention_heads,
-        num_hidden_layers=cfg.model_configs.num_hidden_layers,
-        attention_dropout=cfg.model_configs.attention_dropout,
-        hidden_dropout=cfg.model_configs.hidden_dropout,
-        pad_token_id=train_dataset.pad_token_id,
-        eos_token_id=train_dataset.eos_token_id
-    )
-    model = LlamaWithPreviousLayerCrossAttention(config).to(device)
+    model = get_model(train_dataset, cfg, device)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
     total, correct = 0, 0
@@ -44,13 +31,16 @@ def evaluate(eval_dataset, model_path, cfg, train_dataset):
         for example in eval_dataset:
             input_ids = example["input_ids"].unsqueeze(0).to(device)
             answer = example["answer"]
+
             generated_answer_ids = model.generate(
                 input_ids=input_ids,
                 max_new_tokens=cfg.eval_configs.max_answer_length,
             )
 
             generated_answer = []
-            for token_id in generated_answer_ids.squeeze(0).tolist()[input_ids.shape[1]:]:
+            for token_id in generated_answer_ids[0].tolist()[input_ids.shape[1]:]:
+                if token_id == eval_dataset.eos_token_id:
+                    break
                 generated_answer.append(eval_dataset.id_to_token[token_id])
             generated_answer = ''.join(generated_answer)
 
@@ -70,14 +60,15 @@ if __name__ == "__main__":
     train_dataset = AdditionDataset("/home/sujanreddy/PycharmProjects/CrossLayerAttention/data/addition/train_3digit_10000.txt",
                                     max_sequence_length=cfg.data_configs.max_sequence_length)
     eval_dataset = EvalAdditionDataset(
-        file_path="/home/sujanreddy/PycharmProjects/CrossLayerAttention/data/addition/train_3digit_10000.txt",
+        file_path="/home/sujanreddy/PycharmProjects/CrossLayerAttention/data/addition/test_3digit_10000.txt",
         token_to_id=train_dataset.token_to_id,
         id_to_token=train_dataset.id_to_token,
         pad_token_id=train_dataset.pad_token_id,
-        eos_token_id=train_dataset.eos_token_id
+        eos_token_id=train_dataset.eos_token_id,
+        max_length=cfg.data_configs.max_sequence_length
     )
 
     model_path =cfg.eval_configs.save_path
 
-    evaluate(eval_dataset, "/home/sujanreddy/PycharmProjects/CrossLayerAttention/model_weights/addition_1000_previous_cross_attention_backup.pth", cfg, train_dataset)
+    evaluate(eval_dataset, "/home/sujanreddy/PycharmProjects/CrossLayerAttention/model_weights/addition_1000_traditional_best.pth", cfg, train_dataset)
     print("Done.")

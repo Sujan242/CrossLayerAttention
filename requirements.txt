@@ -1,3 +1,4 @@
-transformers
-torch
+transformers~=4.49.0
+torch~=2.6.0
 accelerate
+scikit-learn

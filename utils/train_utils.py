@@ -12,13 +12,29 @@ from ast import literal_eval
 
 
 def get_train_and_eval_callback(cfg):
+    # create set of all characters - 256 ASCII characters
+    characters = set([chr(i) for i in range(256)])
+    special_tokens = ['<PAD>', '<EOS>']
+    vocab = special_tokens + characters
+    token_to_id = {char: idx for idx, char in enumerate(vocab)}
+    id_to_token = {idx: char for idx, char in enumerate(vocab)}
+
     train_dataset = AdditionDataset(cfg.data_configs.train_data_path,
-                                    max_sequence_length=cfg.data_configs.max_sequence_length)
+                                    id_to_token=id_to_token,
+                                    token_to_id=token_to_id,
+                                    max_sequence_length=cfg.data_configs.max_sequence_length,
+                                    vocab=vocab)
+
+    val_dataset = AdditionDataset(cfg.data_configs.val_data_path,
+                                  id_to_token=id_to_token,
+                                  token_to_id=token_to_id,
+                                  max_sequence_length=cfg.data_configs.max_sequence_length,
+                                  vocab=vocab)
 
     eval_dataset = EvalAdditionDataset(
         file_path=cfg.data_configs.test_data_path,
-        token_to_id=train_dataset.token_to_id,
-        id_to_token=train_dataset.id_to_token,
+        token_to_id=token_to_id,
+        id_to_token=id_to_token,
         pad_token_id=train_dataset.pad_token_id,
         eos_token_id=train_dataset.eos_token_id,
         max_length=cfg.data_configs.max_sequence_length
@@ -30,10 +46,10 @@ def get_train_and_eval_callback(cfg):
                                                save_path=cfg.eval_configs.save_path,
                                                batch_size=cfg.eval_configs.batch_size)
 
-    return train_dataset, eval_callback
+    return train_dataset, val_dataset, eval_callback
 
 def get_model(train_dataset, cfg, device):
-    device = torch.device("cpu")
+    # device = torch.device("cpu")
     config = LlamaConfig(
         vocab_size=train_dataset.vocab_size,
         hidden_size=cfg.model_configs.hidden_size,
@@ -46,11 +62,11 @@ def get_model(train_dataset, cfg, device):
     )
 
     if cfg.model_configs.mode == "full":
-        model = LlamaWithAllLayerCrossAttention(config).to(device)
+        model = LlamaWithAllLayerCrossAttention(config)
     elif cfg.model_configs.mode == "previous":
-        model = LlamaWithPreviousLayerCrossAttention(config).to(device)
+        model = LlamaWithPreviousLayerCrossAttention(config)
     elif cfg.model_configs.mode == "traditional":
-        model = LlamaForCausalLM(config).to(device)
+        model = LlamaForCausalLM(config)
     else:
         raise ValueError("Invalid mode")
 
@@ -58,10 +74,10 @@ def get_model(train_dataset, cfg, device):
         print("loading previous weights")
         model.load_state_dict(torch.load(cfg.eval_configs.save_path))
 
-    # if torch.cuda.is_available():
-    #     gpu_ids = cfg.gpu.ids
-    #     print(f"using DataParallel training on GPUs: {gpu_ids}")
-    #     model = model.to(f'cuda:{gpu_ids[0]}')
-    #     model = DataParallel(model, device_ids=gpu_ids)
+    if torch.cuda.is_available():
+         gpu_ids = cfg.gpu.ids
+         print(f"using DataParallel training on GPUs: {gpu_ids}")
+         model = model.to(f'cuda:{gpu_ids[0]}')
+         model = DataParallel(model, device_ids=gpu_ids)
 
     return model

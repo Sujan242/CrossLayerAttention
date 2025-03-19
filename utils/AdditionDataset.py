@@ -4,8 +4,17 @@ import os
 
 
 class AdditionDataset(Dataset):
-    def __init__(self, file_path, max_sequence_length=512, token_to_id=None, id_to_token=None):
+    def __init__(self, file_path, max_sequence_length, token_to_id, id_to_token, vocab):
+        self.token_to_id = token_to_id
+        self.id_to_token = id_to_token
         self.max_length = max_sequence_length
+        self.vocab = vocab
+
+        # Set token IDs
+        self.pad_token_id = self.token_to_id['<PAD>']
+        self.eos_token_id = self.token_to_id['<EOS>']
+        self.vocab_size = len(self.vocab)
+
         self.lines = []
         # Read and process data
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -15,29 +24,6 @@ class AdditionDataset(Dataset):
                 rhs = equation.split("=")[1]
                 reversed_rhs = "".join(rhs[::-1])
                 self.lines.append(f"{lhs}={reversed_rhs}")
-
-        # Create vocabulary
-        self.characters = set()
-        for line in self.lines:
-            self.characters.update(line)
-
-        # Add special tokens
-        self.special_tokens = ['<PAD>', '<EOS>']
-        self.vocab = self.special_tokens + sorted(self.characters)
-        if token_to_id is None:
-            self.token_to_id = {char: idx for idx, char in enumerate(self.vocab)}
-        else:
-            self.token_to_id = token_to_id
-
-        if id_to_token is None:
-            self.id_to_token = {idx: char for idx, char in enumerate(self.vocab)}
-        else:
-            self.id_to_token = id_to_token
-
-        # Set token IDs
-        self.pad_token_id = self.token_to_id['<PAD>']
-        self.eos_token_id = self.token_to_id['<EOS>']
-        self.vocab_size = len(self.vocab)
 
     def __len__(self):
         return len(self.lines)
