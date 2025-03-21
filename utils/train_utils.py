@@ -29,14 +29,15 @@ def get_train_and_eval_callback(cfg):
                                   token_to_id=token_to_id,
                                   max_sequence_length=cfg.data_configs.max_sequence_length,
                                   vocab=vocab)
-
+    pad = False if cfg.model_configs.mode == "full" else True
     eval_dataset = EvalAdditionDataset(
         file_path=cfg.data_configs.test_data_path,
         token_to_id=token_to_id,
         id_to_token=id_to_token,
         pad_token_id=train_dataset.pad_token_id,
         eos_token_id=train_dataset.eos_token_id,
-        max_length=cfg.data_configs.max_sequence_length
+        max_length=cfg.data_configs.max_sequence_length,
+        pad=pad
     )
 
     eval_callback = AdditionEvalCallbackActual(eval_dataset,

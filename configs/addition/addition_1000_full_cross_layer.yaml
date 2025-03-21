@@ -23,9 +23,9 @@ data_configs:
 
 eval_configs:
   max_answer_length: 5
-  eval_interval: 100
-  save_path: "model_weights/addition_full_cross_attention_stratified.pth"
-  batch_size: 128
+  eval_interval: 50
+  save_path: "model_weights/addition_full_cross_attention_stratified_2.pth"
+  batch_size: 1
 
 gpu:
    ids: [0,1,2,3]

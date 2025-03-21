@@ -1,8 +1,9 @@
-from typing import Optional, Union
+from typing import Optional, Union, Callable, List
 
 import torch
 import torch.nn as nn
-from transformers import LlamaConfig, LlamaForCausalLM
+from transformers import LlamaConfig, LlamaForCausalLM, GenerationConfig, LogitsProcessorList, StoppingCriteriaList
+from transformers.generation.utils import GenerateOutput
 from transformers.modeling_outputs import CausalLMOutputWithPast
 from transformers.models.llama.modeling_llama import LlamaDecoderLayer
 
@@ -33,12 +34,12 @@ class LlamaWithAllLayerCrossAttention(LlamaForCausalLM):
             **kwargs,
     ):
         batch_size, seq_len = input_ids.shape
-        if past_key_values is None:
-            past_key_values = DynamicCacheCrossLayer(mode='all', equivalent_to_training=self.training)
+        if past_key_values is None or len(past_key_values.key_cache) == 0:
+            past_key_values = DynamicCacheCrossLayer(mode='all')
         device = input_ids.device
         loss = 0 # Initialize loss
         logits = []
-        for t in range(seq_len-1):
+        for t in range(seq_len):
             current_input = input_ids[:, t].unsqueeze(1)
             if t != 0:
                 # add (config.num_hidden_layers -1 ) 1s to the begginning of the attention mask
@@ -48,16 +49,17 @@ class LlamaWithAllLayerCrossAttention(LlamaForCausalLM):
             else:
                 current_mask = attention_mask[:, :t + 1]
 
-            current_labels = labels[:, t+1].unsqueeze(1) if labels is not None else None
+            current_labels = labels[:, t+1].unsqueeze(1) if (labels is not None and t!=seq_len-1) else None
             logits_to_keep = 1
-            outputs = super().forward(input_ids=current_input, attention_mask=current_mask, position_ids=position_ids,
+            outputs = super().forward(input_ids=current_input, attention_mask=current_mask,
                             past_key_values=past_key_values, inputs_embeds=inputs_embeds,
                             labels=current_labels, use_cache=use_cache, output_attentions=output_attentions,
                             output_hidden_states=output_hidden_states, return_dict=return_dict,
-                            cache_position=cache_position, logits_to_keep=logits_to_keep, **kwargs)
-            loss += outputs.loss
+                         logits_to_keep=logits_to_keep, **kwargs
+            )
+            if outputs.loss is not None:
+                loss += outputs.loss
             logits.append(outputs.logits)
-
         logits = torch.cat(logits, dim=1)
         return CausalLMOutputWithPast(loss=loss, logits=logits, past_key_values=past_key_values,
                                       hidden_states=output_hidden_states,
