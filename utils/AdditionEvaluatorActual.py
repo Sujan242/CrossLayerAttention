@@ -57,18 +57,49 @@ if __name__ == "__main__":
 
     cfg = load_config(config_path)
 
-    train_dataset = AdditionDataset("/home/sujanreddy/PycharmProjects/CrossLayerAttention/data/addition/train_3digit_10000.txt",
-                                    max_sequence_length=cfg.data_configs.max_sequence_length)
+    characters = set([chr(i) for i in range(256)])
+    special_tokens = ['<PAD>', '<EOS>']
+    vocab = special_tokens + sorted(characters)
+    token_to_id = {char: idx for idx, char in enumerate(vocab)}
+    id_to_token = {idx: char for idx, char in enumerate(vocab)}
+
+    train_dataset = AdditionDataset(
+        "/Users/Patron/PycharmProjects/CrossLayerAttention/data/addition_script/train_reversed_addition.txt",
+        id_to_token=id_to_token,
+        token_to_id=token_to_id,
+        max_sequence_length=cfg.data_configs.max_sequence_length,
+        vocab=vocab)
+
+    print("evaluating of train dataset")
     eval_dataset = EvalAdditionDataset(
-        file_path="/home/sujanreddy/PycharmProjects/CrossLayerAttention/data/addition/test_3digit_10000.txt",
+        file_path="/Users/Patron/PycharmProjects/CrossLayerAttention/data/addition_script/train_reversed_addition.txt",
         token_to_id=train_dataset.token_to_id,
         id_to_token=train_dataset.id_to_token,
         pad_token_id=train_dataset.pad_token_id,
         eos_token_id=train_dataset.eos_token_id,
-        max_length=cfg.data_configs.max_sequence_length
+        max_length=cfg.data_configs.max_sequence_length,
+        pad=False
     )
 
     model_path =cfg.eval_configs.save_path
 
-    evaluate(eval_dataset, "/home/sujanreddy/PycharmProjects/CrossLayerAttention/model_weights/addition_1000_traditional_best.pth", cfg, train_dataset)
+    evaluate(eval_dataset, "/Users/Patron/PycharmProjects/CrossLayerAttention/model_weights1/model_weights/addition_full_cross_attention_stratified_2.pth_99.0", cfg, train_dataset)
+    print("Done.")
+
+    print("evaluating of test dataset")
+    eval_dataset = EvalAdditionDataset(
+        file_path="/Users/Patron/PycharmProjects/CrossLayerAttention/data/addition_script/test_reversed_addition.txt",
+        token_to_id=train_dataset.token_to_id,
+        id_to_token=train_dataset.id_to_token,
+        pad_token_id=train_dataset.pad_token_id,
+        eos_token_id=train_dataset.eos_token_id,
+        max_length=cfg.data_configs.max_sequence_length,
+        pad=False
+    )
+
+    model_path = cfg.eval_configs.save_path
+
+    evaluate(eval_dataset,
+             "/Users/Patron/PycharmProjects/CrossLayerAttention/model_weights1/model_weights/addition_full_cross_attention_stratified_2.pth_99.0",
+             cfg, train_dataset)
     print("Done.")

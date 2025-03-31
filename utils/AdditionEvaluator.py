@@ -52,11 +52,26 @@ def evaluate(eval_dataset, model_path, cfg, train_dataset):
                 generated_answer.append(id_to_token[token_id.item()])
             generated_answer = ''.join(generated_answer)
 
+            # write input,expected and generated into a csv file
+            # if generated_answer!=answer:
+            #     input_str = "".join([id_to_token[x] for x in input_ids.squeeze().tolist()])
+            #     print(f"Input: {input_str}")
+            #     print(f"Expected: {answer}")
+            #     print(f"Generated: {generated_answer}")
+            #     print()
+            #     csv_list.append([input_str,answer,generated_answer])
             correct += (generated_answer == answer)
             total += 1
 
     accuracy = correct / total if total else 0
     print(f"\nEvaluation Accuracy: {accuracy:.4f}")
+
+    import csv
+    # write the csv file with headers
+    with open('addition_eval_lg.csv', 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Input", "Expected", "Generated"])
+        writer.writerows(csv_list)
 
 
 if __name__ == "__main__":
@@ -77,5 +92,5 @@ if __name__ == "__main__":
 
     model_path =cfg.eval_configs.save_path
 
-    evaluate(eval_dataset, "/Users/Patron/PycharmProjects/CrossLayerAttention/model_weights/addition_1000.pth", cfg, train_dataset)
+    evaluate(eval_dataset, "/Users/Patron/PycharmProjects/CrossLayerAttention/model_weights/addition_1000_small_full_reversed.pth", cfg, train_dataset)
     print("Done.")
