@@ -94,14 +94,6 @@ class CustomLlama(LlamaPreTrainedModel):
         generated_ids = []
         dynamic_cache = CustomDynamicCache()  # Initialize cache
 
-        # input_embeds = self.embed_tokens(input_ids)
-        # outputs = self.llama_model(
-        #     inputs_embeds=input_embeds,
-        #     attention_mask=attention_mask,
-        #     past_key_values=dynamic_cache,
-        #     use_cache=True
-        # )
-        # TODO parallel - prefilling
         for t in range(input_ids.shape[1]):
             current_input = input_ids[:, t].unsqueeze(1)
 
