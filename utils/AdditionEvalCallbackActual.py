@@ -57,7 +57,7 @@ class AdditionEvalCallbackActual(TrainerCallback):
             print(f"Bettered best accuracy with {accuracy}. Saving model.")
             torch.save(model.state_dict(), self.save_path.replace(".pth", "_best.pth"))
 
-        torch.save(model.state_dict(), self.save_path)
+        torch.save(model.state_dict(), self.save_path+"_"+str(state.epoch))
 
         print("______________________________________________________________________________________")
         print("Best accuracy so far: ", self.best_accuracy)
