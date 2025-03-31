@@ -72,6 +72,7 @@ def train(train_dataset, val_dataset, model, eval_callback):
         lr_scheduler_type="cosine",
         logging_strategy="steps",
         logging_steps=0.1,
+        label_names=["labels"]
     )
 
     trainer = Trainer(
