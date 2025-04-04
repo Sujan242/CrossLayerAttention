@@ -22,8 +22,9 @@ class AdditionDataset(Dataset):
                 equation = line.strip()
                 lhs = equation.split("=")[0]
                 rhs = equation.split("=")[1]
-                reversed_rhs = "".join(rhs[::-1])
-                self.lines.append(f"{lhs}={reversed_rhs}")
+                # the dataset already reverses the rhs
+                # reversed_rhs = "".join(rhs[::-1])
+                self.lines.append(f"{lhs}={rhs}")
 
     def __len__(self):
         return len(self.lines)

@@ -16,8 +16,9 @@ class EvalAdditionDataset(Dataset):
                 equation = line.strip()
                 lhs = equation.split("=")[0]
                 rhs = equation.split("=")[1]
-                reversed_rhs = "".join(rhs[::-1])
-                self.lines.append(f"{lhs}={reversed_rhs}")
+                # the dataset already reverses the rhs
+                # reversed_rhs = "".join(rhs[::-1])
+                self.lines.append(f"{lhs}={rhs}")
 
         self.questions = []
         self.answers = []
@@ -34,8 +35,10 @@ class EvalAdditionDataset(Dataset):
         answer = self.answers[idx]
 
         input_ids = [self.token_to_id[c] for c in question]
-        attention_mask = [1] * len(input_ids)
-        padding_length = self.max_length - len(input_ids)
+
+        # evaluating with batch size 1
+        # attention_mask = [1] * len(input_ids)
+        # padding_length = self.max_length - len(input_ids)
         # if self.pad:
         #     input_ids = [self.pad_token_id] * padding_length + input_ids
         # attention_mask = [0] * padding_length + attention_mask
