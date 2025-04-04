@@ -30,11 +30,11 @@ class AdditionEvalCallbackActual(TrainerCallback):
             for batch in dataloader:
                 input_ids = batch["input_ids"].to(device)
                 answers = batch["answer"]
-                attention_mask = batch["attention_mask"].to(device)
+                # attention_mask = batch["attention_mask"].to(device)
 
                 generated_answer_ids = model.generate(
                     input_ids=input_ids,
-                    attention_mask=attention_mask,
+                    # attention_mask=attention_mask,
                     max_new_tokens=self.max_answer_length,
                 )
 

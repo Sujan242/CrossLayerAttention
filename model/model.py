@@ -57,10 +57,11 @@ class LlamaWithAllLayerCrossAttention(LlamaForCausalLM):
                             output_hidden_states=output_hidden_states, return_dict=return_dict,
                          logits_to_keep=logits_to_keep, **kwargs
             )
-            if outputs.loss is not None:
-                loss += outputs.loss
             logits.append(outputs.logits)
         logits = torch.cat(logits, dim=1)
+        loss = None
+        if labels is not None:
+            loss = self.loss_function(logits=logits, labels=labels, vocab_size=self.config.vocab_size, **kwargs)
         return CausalLMOutputWithPast(loss=loss, logits=logits, past_key_values=past_key_values,
                                       hidden_states=output_hidden_states,
                                       attentions=output_attentions)

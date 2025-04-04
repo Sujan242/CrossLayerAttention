@@ -12,26 +12,29 @@ from utils.AdditionEvalCallbackActual import AdditionEvalCallbackActual
 
 def get_train_and_eval_callback(cfg):
     # create set of all characters - 256 ASCII characters
+
+    current_dir = os.getcwd()
+
     characters = set([chr(i) for i in range(256)])
     special_tokens = ['<PAD>', '<EOS>']
     vocab = special_tokens + sorted(characters)
     token_to_id = {char: idx for idx, char in enumerate(vocab)}
     id_to_token = {idx: char for idx, char in enumerate(vocab)}
 
-    train_dataset = AdditionDataset(cfg.data_configs.train_data_path,
+    train_dataset = AdditionDataset(os.path.join(current_dir,cfg.data_configs.train_data_path),
                                     id_to_token=id_to_token,
                                     token_to_id=token_to_id,
                                     max_sequence_length=cfg.data_configs.max_sequence_length,
                                     vocab=vocab)
 
-    val_dataset = AdditionDataset(cfg.data_configs.val_data_path,
+    val_dataset = AdditionDataset(os.path.join(current_dir,cfg.data_configs.val_data_path),
                                   id_to_token=id_to_token,
                                   token_to_id=token_to_id,
                                   max_sequence_length=cfg.data_configs.max_sequence_length,
                                   vocab=vocab)
     pad = False if cfg.model_configs.mode == "full" else True
     eval_dataset = EvalAdditionDataset(
-        file_path=cfg.data_configs.test_data_path,
+        file_path=os.path.join(cfg.data_configs.test_data_path),
         token_to_id=token_to_id,
         id_to_token=id_to_token,
         pad_token_id=train_dataset.pad_token_id,
@@ -43,7 +46,7 @@ def get_train_and_eval_callback(cfg):
     eval_callback = AdditionEvalCallbackActual(eval_dataset,
                                                max_answer_length=cfg.eval_configs.max_answer_length,
                                                eval_interval=cfg.eval_configs.eval_interval,
-                                               save_path=cfg.eval_configs.save_path,
+                                               save_path=os.path.join(current_dir,cfg.eval_configs.save_path),
                                                batch_size=cfg.eval_configs.batch_size)
 
     return train_dataset, val_dataset, eval_callback
