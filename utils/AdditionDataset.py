@@ -27,9 +27,7 @@ class AdditionDataset(Dataset):
                 self.lines.append(f"{lhs}={rhs}")
 
     def __len__(self):
-        # return len(self.lines)
-
-        return 8
+        return len(self.lines)
 
     def __getitem__(self, idx):
         text = self.lines[idx]
