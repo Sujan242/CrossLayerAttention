@@ -37,14 +37,17 @@ class LlamaWithAllLayerCrossAttention(LlamaForCausalLM):
         if past_key_values is None or len(past_key_values.key_cache) == 0:
             past_key_values = DynamicCacheCrossLayer(mode='all')
         device = input_ids.device
-        loss = 0 # Initialize loss
         logits = []
         for t in range(seq_len):
             current_input = input_ids[:, t].unsqueeze(1)
             if t != 0:
                 # add (config.num_hidden_layers -1 ) 1s to the begginning of the attention mask
+                # if the attention mask of the previous token is 1 then append 1s else 0s
+                previous_token_attention = attention_mask[:, t - 1]  # shape (batch_size,)
+                prepend_mask_value = (previous_token_attention != 0).float()  # 1 if not PAD, 0 if PAD
+                prepend_mask = prepend_mask_value.unsqueeze(1).repeat(1, (self.config.num_hidden_layers - 1) * t)
                 current_mask = torch.cat(
-                    [torch.ones(batch_size, (self.config.num_hidden_layers - 1) * t).to(device=device),
+                    [prepend_mask.to(device=device),
                      attention_mask[:, :t + 1]], dim=1)
             else:
                 current_mask = attention_mask[:, :t + 1]
