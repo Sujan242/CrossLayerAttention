@@ -8,6 +8,8 @@ from transformers import Trainer, TrainingArguments
 from utils.AdditionDatasetEval import EvalAdditionDataset
 from utils.train_utils import get_train_and_eval_callback, get_model
 
+import os
+
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -79,7 +81,7 @@ def train(train_dataset, val_dataset, model, eval_callback):
         model=model,
         args=training_args,
         train_dataset=train_dataset,
-        # callbacks=[eval_callback],
+        callbacks=[eval_callback],
         eval_dataset=val_dataset,
     )
 
@@ -90,6 +92,9 @@ def train(train_dataset, val_dataset, model, eval_callback):
 if __name__ == "__main__":
     # get the config path from the script arguments
     config_path = sys.argv[1]
+
+
+    current_dir = os.getcwd()
 
     print(f"__________________________starting training for config: {config_path}________________________________________")
 
@@ -104,8 +109,10 @@ if __name__ == "__main__":
 
     model = train(train_dataset, val_dataset, model, eval_callback)
 
+    os.path.join(current_dir, cfg.eval_configs.save_path)
+
     test_dataset_test = EvalAdditionDataset(
-        file_path=cfg.data_configs.test_data_path,
+        file_path=os.path.join(current_dir,cfg.data_configs.test_data_path),
         token_to_id=train_dataset.token_to_id,
         id_to_token=train_dataset.id_to_token,
         pad_token_id=train_dataset.pad_token_id,
@@ -115,7 +122,7 @@ if __name__ == "__main__":
     )
 
     test_dataset_train = EvalAdditionDataset(
-        file_path=cfg.data_configs.train_data_path,
+        file_path=os.path.join(current_dir,cfg.data_configs.train_data_path),
         token_to_id=train_dataset.token_to_id,
         id_to_token=train_dataset.id_to_token,
         pad_token_id=train_dataset.pad_token_id,
@@ -125,7 +132,7 @@ if __name__ == "__main__":
     )
 
     test_dataset_val = EvalAdditionDataset(
-        file_path=cfg.data_configs.val_data_path,
+        file_path=os.path.join(current_dir,cfg.data_configs.val_data_path),
         token_to_id=train_dataset.token_to_id,
         id_to_token=train_dataset.id_to_token,
         pad_token_id=train_dataset.pad_token_id,
