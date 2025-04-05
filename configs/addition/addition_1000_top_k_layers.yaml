@@ -4,7 +4,7 @@ model_configs:
   num_hidden_layers: 3
   attention_dropout: 0.1
   hidden_dropout: 0.1
-  mode: top_2
+  mode: top_1
 
 training_configs:
   output_dir: "./results"
