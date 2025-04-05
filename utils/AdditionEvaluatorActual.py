@@ -64,7 +64,7 @@ if __name__ == "__main__":
     id_to_token = {idx: char for idx, char in enumerate(vocab)}
 
     train_dataset = AdditionDataset(
-        "/Users/Patron/PycharmProjects/CrossLayerAttention/data/addition_script/train_reversed_addition.txt",
+        cfg.data_configs.train_data_path,
         id_to_token=id_to_token,
         token_to_id=token_to_id,
         max_sequence_length=cfg.data_configs.max_sequence_length,
@@ -72,7 +72,7 @@ if __name__ == "__main__":
 
     print("evaluating of train dataset")
     eval_dataset = EvalAdditionDataset(
-        file_path="/Users/Patron/PycharmProjects/CrossLayerAttention/data/addition_script/train_reversed_addition.txt",
+        file_path=cfg.data_configs.train_data_path,
         token_to_id=train_dataset.token_to_id,
         id_to_token=train_dataset.id_to_token,
         pad_token_id=train_dataset.pad_token_id,
