@@ -20,10 +20,10 @@ class AdditionDataset(Dataset):
         with open(file_path, 'r', encoding='utf-8') as f:
             for line in f.readlines():
                 equation = line.strip()
-                lhs = equation.split("=")[0]
-                rhs = equation.split("=")[1]
-                reversed_rhs = "".join(rhs[::-1])
-                self.lines.append(f"{lhs}={reversed_rhs}")
+                # lhs = equation.split("=")[0]
+                # rhs = equation.split("=")[1]
+                # # reversed_rhs = "".join(rhs[::-1])
+                self.lines.append(equation)
 
     def __len__(self):
         return len(self.lines)

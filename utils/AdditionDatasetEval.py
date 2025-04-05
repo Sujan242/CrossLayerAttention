@@ -14,15 +14,15 @@ class EvalAdditionDataset(Dataset):
         with open(file_path, 'r', encoding='utf-8') as f:
             for line in f.readlines():
                 equation = line.strip()
-                lhs = equation.split("=")[0]
-                rhs = equation.split("=")[1]
-                reversed_rhs = "".join(rhs[::-1])
-                self.lines.append(f"{lhs}={reversed_rhs}")
+                # lhs = equation.split("=")[0]
+                # rhs = equation.split("=")[1]
+                # reversed_rhs = "".join(rhs[::-1])
+                self.lines.append(equation)
 
         self.questions = []
         self.answers = []
         for line in self.lines:
-            q, a = line.split('=', 1)
+            q, a = line.split('=')
             self.questions.append(q + '=')
             self.answers.append(a)
 
@@ -38,7 +38,7 @@ class EvalAdditionDataset(Dataset):
         padding_length = self.max_length - len(input_ids)
         if self.pad:
             input_ids = [self.pad_token_id] * padding_length + input_ids
-        attention_mask = [0] * padding_length + attention_mask
+            attention_mask = [0] * padding_length + attention_mask
 
         return {
             "input_ids": torch.tensor(input_ids, dtype=torch.long),
