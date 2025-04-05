@@ -12,10 +12,11 @@ from .DynamicCacheCrossLayer import DynamicCacheCrossLayer
 
 class LlamaWithAllLayerCrossAttention(LlamaForCausalLM):
 
-    def __init__(self, config: LlamaConfig):
+    def __init__(self, config: LlamaConfig, num_layers_to_attend: int = 1):
         # Create configuration
         super().__init__(config)
         self.loss_type = "ForMaskedLM"
+        self.num_layers_to_attend = num_layers_to_attend
 
     def forward(
             self,
@@ -35,23 +36,24 @@ class LlamaWithAllLayerCrossAttention(LlamaForCausalLM):
     ):
         batch_size, seq_len = input_ids.shape
         if past_key_values is None or len(past_key_values.key_cache) == 0:
-            past_key_values = DynamicCacheCrossLayer(mode='all')
+            past_key_values = DynamicCacheCrossLayer(mode='top_k', num_layers_to_attend=self.num_layers_to_attend)
         device = input_ids.device
         loss = 0 # Initialize loss
         logits = []
         for t in range(seq_len):
             current_input = input_ids[:, t].unsqueeze(1)
-            if t != 0:
-                # add (config.num_hidden_layers -1 ) 1s to the begginning of the attention mask
-                current_mask = torch.cat(
-                    [torch.ones(batch_size, (self.config.num_hidden_layers - 1) * t).to(device=device),
-                     attention_mask[:, :t + 1]], dim=1)
-            else:
-                current_mask = attention_mask[:, :t + 1]
+            # if t != 0:
+            #     # add (config.num_hidden_layers -1 ) 1s to the begginning of the attention mask
+            #     current_mask = torch.cat(
+            #         [torch.ones(batch_size, (self.config.num_hidden_layers - 1) * t).to(device=device),
+            #          attention_mask[:, :t + 1]], dim=1)
+            # else:
+            #     current_mask = attention_mask[:, :t + 1]
 
             current_labels = labels[:, t+1].unsqueeze(1) if (labels is not None and t!=seq_len-1) else None
             logits_to_keep = 1
-            outputs = super().forward(input_ids=current_input, attention_mask=current_mask,
+            # setting attention mask to None because we are using causal attention and right padding
+            outputs = super().forward(input_ids=current_input, attention_mask=None,
                             past_key_values=past_key_values, inputs_embeds=inputs_embeds,
                             labels=current_labels, use_cache=use_cache, output_attentions=output_attentions,
                             output_hidden_states=output_hidden_states, return_dict=return_dict,

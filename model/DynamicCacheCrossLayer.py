@@ -5,10 +5,11 @@ from typing import Dict, Any, Optional, Tuple
 
 class DynamicCacheCrossLayer(DynamicCache):
 
-    def __init__(self, mode='all', equivalent_to_training=False, num_hidden_layers=None):
+    def __init__(self, mode='all', equivalent_to_training=False, num_hidden_layers=None, num_layers_to_attend=None):
         super().__init__(num_hidden_layers)
         self.mode = mode
         self.equivalent_to_training = equivalent_to_training
+        self.num_layers_to_attend = num_layers_to_attend
 
     def update(
             self,
@@ -22,13 +23,16 @@ class DynamicCacheCrossLayer(DynamicCache):
 
         # Gather token's cache from all other layers
         if self._seen_tokens > 1:
-            if self.mode == 'all':
+            if self.mode == 'top_k':
+                if self.num_layers_to_attend == 1 and layer_idx == len(self.key_cache)-1:
+                    return self.key_cache[layer_idx], self.value_cache[layer_idx]
+
                 prev_token_key_cache = torch.cat([self.key_cache[i][:, :, :self._seen_tokens - 1, :]
-                                                  for i in range(len(self.key_cache))
+                                                  for i in range(len(self.key_cache)-self.num_layers_to_attend, len(self.key_cache))
                                                   if i != layer_idx],
                                                  dim=2)
                 prev_token_value_cache = torch.cat([self.value_cache[i][:, :, :self._seen_tokens - 1, ]
-                                                    for i in range(len(self.key_cache))
+                                                    for i in range(len(self.key_cache)-self.num_layers_to_attend, len(self.key_cache))
                                                     if i != layer_idx],
                                                    dim=2)
             elif self.mode == 'previous':
@@ -50,7 +54,7 @@ class DynamicCacheCrossLayer(DynamicCache):
                 raise ValueError(f"Invalid mode {self.mode}")
 
             concatenated_keys = torch.cat([prev_token_key_cache, self.key_cache[layer_idx]], dim=2)
-            concatenated_values = torch.cat([prev_token_value_cache, self.value_cache[layer_idx]], dim=-2)
+            concatenated_values = torch.cat([prev_token_value_cache, self.value_cache[layer_idx]], dim=2)
             return concatenated_keys, concatenated_values # TODO validate memory and compute overhead
 
         return self.key_cache[layer_idx], self.value_cache[layer_idx]

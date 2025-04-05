@@ -14,8 +14,6 @@ training_configs:
   num_train_epochs: 1000
   logging_dir: "./logs"
   remove_unused_columns: false
-  lr_scheduler_type: "cosine"
-  warmup_steps: 100
 
 data_configs:
   train_data_path: "data/addition_script/train_reversed_addition.txt"
@@ -27,7 +25,7 @@ data_configs:
 eval_configs:
   max_answer_length: 5
   eval_interval: 50
-  save_path: "model_weights/addition_1000_previous_cross_attention_stratified.pth"
+  save_path: "model_weights1/addition_1000_previous_cross_attention_stratified.pth"
   batch_size: 128
 
 gpu:

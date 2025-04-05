@@ -31,9 +31,7 @@ def train(train_dataset, val_dataset, model, eval_callback):
         num_train_epochs=cfg.training_configs.num_train_epochs,
         logging_dir=cfg.training_configs.logging_dir,
         remove_unused_columns=cfg.training_configs.remove_unused_columns,
-        dataloader_pin_memory=False,
-        lr_scheduler_type=cfg.training_configs.lr_scheduler_type,
-        warmup_steps=cfg.training_configs.warmup_steps
+        dataloader_pin_memory=False
     )
 
     trainer = Trainer(
