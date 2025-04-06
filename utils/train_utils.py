@@ -29,7 +29,7 @@ def get_train_and_eval_callback(cfg):
                                   token_to_id=token_to_id,
                                   max_sequence_length=cfg.data_configs.max_sequence_length,
                                   vocab=vocab)
-    pad = False if cfg.model_configs.mode.startswith("top") else True
+    pad = False if cfg.model_configs.mode.startswith("top" or "next") else True
     eval_dataset = EvalAdditionDataset(
         file_path=cfg.data_configs.test_data_path,
         token_to_id=token_to_id,
@@ -61,7 +61,9 @@ def get_model(train_dataset, cfg):
     )
 
     if cfg.model_configs.mode.startswith("top"):
-        model = LlamaWithAllLayerCrossAttention(config, num_layers_to_attend=int(cfg.model_configs.mode.split("_")[1]))
+        model = LlamaWithAllLayerCrossAttention(config, mode=cfg.model_configs.mode, num_layers_to_attend=int(cfg.model_configs.mode.split("_")[1]))
+    elif cfg.model_configs.mode == "next":
+        model = LlamaWithAllLayerCrossAttention(config, mode=cfg.model_configs.mode)
     elif cfg.model_configs.mode == "previous":
         model = LlamaWithPreviousLayerCrossAttention(config)
     elif cfg.model_configs.mode == "traditional":
