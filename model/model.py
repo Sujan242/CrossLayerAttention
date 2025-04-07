@@ -12,11 +12,12 @@ from .DynamicCacheCrossLayer import DynamicCacheCrossLayer
 
 class LlamaWithAllLayerCrossAttention(LlamaForCausalLM):
 
-    def __init__(self, config: LlamaConfig, num_layers_to_attend: int = 1):
+    def __init__(self, config: LlamaConfig,mode, num_layers_to_attend: int = 1):
         # Create configuration
         super().__init__(config)
         self.loss_type = "ForMaskedLM"
         self.num_layers_to_attend = num_layers_to_attend
+        self.mode = mode
 
     def forward(
             self,
@@ -36,7 +37,7 @@ class LlamaWithAllLayerCrossAttention(LlamaForCausalLM):
     ):
         batch_size, seq_len = input_ids.shape
         if past_key_values is None or len(past_key_values.key_cache) == 0:
-            past_key_values = DynamicCacheCrossLayer(mode='top_k', num_layers_to_attend=self.num_layers_to_attend)
+            past_key_values = DynamicCacheCrossLayer(mode=self.mode, num_layers_to_attend=self.num_layers_to_attend)
         device = input_ids.device
         loss = 0 # Initialize loss
         logits = []
