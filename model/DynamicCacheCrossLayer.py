@@ -36,7 +36,7 @@ class DynamicCacheCrossLayer(DynamicCache):
                                                                    len(self.key_cache))
                                                     if i != layer_idx],
                                                    dim=2)
-            elif self.mode == 'top_k':
+            elif self.mode.startswith('top_'):
                 if self.num_layers_to_attend == 1 and layer_idx == len(self.key_cache)-1:
                     return self.key_cache[layer_idx], self.value_cache[layer_idx]
 

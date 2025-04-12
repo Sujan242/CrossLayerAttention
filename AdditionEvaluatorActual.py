@@ -1,4 +1,4 @@
-import sys
+import sys, os
 from types import SimpleNamespace
 
 import torch
@@ -57,18 +57,33 @@ if __name__ == "__main__":
 
     cfg = load_config(config_path)
 
-    train_dataset = AdditionDataset("/home/sujanreddy/PycharmProjects/CrossLayerAttention/data/addition/train_3digit_10000.txt",
-                                    max_sequence_length=cfg.data_configs.max_sequence_length)
+    cwd = os.getcwd()
+
+
+    characters = set([chr(i) for i in range(256)])
+    special_tokens = ['<PAD>', '<EOS>']
+    vocab = special_tokens + sorted(characters)
+    token_to_id = {char: idx for idx, char in enumerate(vocab)}
+    id_to_token = {idx: char for idx, char in enumerate(vocab)}
+
+    train_dataset = AdditionDataset(os.path.join(cwd,cfg.data_configs.train_data_path),
+                                    id_to_token=id_to_token,
+                                    token_to_id=token_to_id,
+                                    max_sequence_length=cfg.data_configs.max_sequence_length,
+                                    vocab=vocab)
+
+    pad = False
     eval_dataset = EvalAdditionDataset(
-        file_path="/home/sujanreddy/PycharmProjects/CrossLayerAttention/data/addition/test_3digit_10000.txt",
-        token_to_id=train_dataset.token_to_id,
-        id_to_token=train_dataset.id_to_token,
+        file_path=os.path.join(cfg.data_configs.test_data_path),
+        token_to_id=token_to_id,
+        id_to_token=id_to_token,
         pad_token_id=train_dataset.pad_token_id,
         eos_token_id=train_dataset.eos_token_id,
-        max_length=cfg.data_configs.max_sequence_length
+        max_length=cfg.data_configs.max_sequence_length,
+        pad=pad
     )
 
-    model_path =cfg.eval_configs.save_path
+    model_path =os.path.join(cwd,cfg.eval_configs.save_path)
 
-    evaluate(eval_dataset, "/home/sujanreddy/PycharmProjects/CrossLayerAttention/model_weights/addition_1000_traditional_best.pth", cfg, train_dataset)
+    evaluate(eval_dataset, model_path, cfg, train_dataset)
     print("Done.")
