@@ -18,14 +18,14 @@ training_configs:
 data_configs:
   train_data_path: "data/addition_script/train_reversed_addition.txt"
   val_data_path: "data/addition_script/val_reversed_addition.txt"
-  test_data_path: "data/addition_script/train_reversed_addition.txt"
+  test_data_path: "data/addition_script/test_reversed_addition.txt"
   max_sequence_length: 20
 
 
 eval_configs:
   max_answer_length: 5
   eval_interval: 20
-  save_path: "model_weights2/addition_1000_previous_cross_attention_stratified_best.pth"
+  save_path: "model_weights2/addition_1000_previous_cross_attention_upto_mode.pth"
   batch_size: 1024
 
 gpu:

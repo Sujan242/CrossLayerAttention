@@ -52,10 +52,12 @@ class DynamicCacheCrossLayer(DynamicCache):
                 if layer_idx == 0:
                     return self.key_cache[layer_idx], self.value_cache[layer_idx]
 
-                if self.equivalent_to_training:
-                    upto_token = self._seen_tokens
-                else:
-                    upto_token = self._seen_tokens - 1
+                upto_token = self._seen_tokens
+
+                # if self.equivalent_to_training: # training or prefilling
+                #     upto_token = self._seen_tokens
+                # else:
+                #     upto_token = self._seen_tokens - 1
 
                 prev_token_key_cache = torch.cat([self.key_cache[i][:, :, :upto_token, :]
                                                   for i in range(layer_idx)],

@@ -73,7 +73,7 @@ def get_model(train_dataset, cfg):
 
     if os.path.exists(cfg.eval_configs.save_path):
         print("loading previous weights")
-        model.load_state_dict(torch.load(cfg.eval_configs.save_path))
+        model.load_state_dict(torch.load(cfg.eval_configs.save_path, map_location='cpu'))
 
     if torch.cuda.is_available():
          gpu_ids = cfg.gpu.ids

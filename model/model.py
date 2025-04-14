@@ -94,7 +94,7 @@ class LlamaWithPreviousLayerCrossAttention(LlamaForCausalLM):
         logits_to_keep: Union[int, torch.Tensor] = 0,
         **kwargs,
     ):
-        # Hack to check if prefilling or not. just check if the KV cache is None
+        # Hack to check if prefilling or not. just check if the KV cache is empty
         if past_key_values is None or len(past_key_values.key_cache) == 0:
             past_key_values = DynamicCacheCrossLayer(mode='previous', equivalent_to_training=True)
         else:
