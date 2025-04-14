@@ -29,7 +29,11 @@ def get_train_and_eval_callback(cfg):
                                   token_to_id=token_to_id,
                                   max_sequence_length=cfg.data_configs.max_sequence_length,
                                   vocab=vocab)
-    pad = False if cfg.model_configs.mode.startswith("top" or "next") else True
+
+    if cfg.model_configs.mode.startswith("top") or cfg.model_configs.mode == "next":
+        pad = False
+    else:
+        pad = True
     eval_dataset = EvalAdditionDataset(
         file_path=cfg.data_configs.test_data_path,
         token_to_id=token_to_id,
@@ -71,9 +75,11 @@ def get_model(train_dataset, cfg):
     else:
         raise ValueError("Invalid mode")
 
-    if os.path.exists(cfg.eval_configs.save_path):
-        print("loading previous weights")
-        model.load_state_dict(torch.load(cfg.eval_configs.save_path, map_location='cpu'))
+    # check if cfg.training_configs.load_model key is present
+    # and if it is set to True
+    if hasattr(cfg.training_configs,"load_model"):
+        print(f"loading previous weights {cfg.training_configs.load_model}")
+        model.load_state_dict(torch.load(cfg.training_configs.load_model, map_location='cpu'))
 
     if torch.cuda.is_available():
          gpu_ids = cfg.gpu.ids
