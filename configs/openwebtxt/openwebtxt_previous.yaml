@@ -11,7 +11,7 @@ training_configs:
   per_device_train_batch_size: 4
   gradient_accumulation_steps: 2
   learning_rate: 2e-5
-  num_train_epochs: 500
+  num_train_epochs: 100
   logging_dir: "./logs"
   remove_unused_columns: false
   per_device_eval_batch_size: 4

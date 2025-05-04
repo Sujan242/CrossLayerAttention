@@ -59,26 +59,35 @@ def train(tokenized, model, cfg):
         logging_dir=cfg.training_configs.logging_dir,
         remove_unused_columns=cfg.training_configs.remove_unused_columns,
         dataloader_pin_memory=False,
-        load_best_model_at_end=True,
+        # load_best_model_at_end=True,
         save_strategy="epoch",
-        evaluation_strategy="epoch",
+        # evaluation_strategy="epoch",
         logging_strategy="epoch",
         per_device_eval_batch_size=cfg.training_configs.per_device_eval_batch_size,
-        metric_for_best_model="eval_loss",
-        greater_is_better=False
+        # metric_for_best_model="eval_loss",
+        # greater_is_better=False
     )
 
     trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=tokenized["train"],
-        eval_dataset=tokenized["validation"],
+        # eval_dataset=tokenized["validation"],
         tokenizer=tokenizer,
         data_collator=collator,
         compute_metrics=compute_metrics,
     )
 
     trainer.train()
+
+    # Force evaluation on a single GPU
+    if torch.cuda.is_available():
+        device = torch.device(f"cuda:{cfg.gpu.ids[0]}")  # Use the first GPU
+        model_single_gpu = model.module if isinstance(model, DataParallel) else model  # Unwrap DataParallel if needed
+        model_single_gpu.to(device)
+        trainer.model = model_single_gpu
+        trainer.args._n_gpu = 1  # Inform Trainer about single GPU
+        trainer.args.device = device
 
     results = trainer.evaluate(eval_dataset=tokenized["test"])
 
