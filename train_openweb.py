@@ -97,11 +97,13 @@ def get_model(cfg):
         hidden_dropout=cfg.model_configs.hidden_dropout
     )
     if cfg.model_configs.mode.startswith("top"):
+        print(f"Using top {cfg.model_configs.mode.split('_')[1]} layer cross attention")
         model = LlamaWithAllLayerCrossAttention(config, mode=cfg.model_configs.mode,
                                                 num_layers_to_attend=int(cfg.model_configs.mode.split("_")[1]))
     elif cfg.model_configs.mode == "next":
         model = LlamaWithAllLayerCrossAttention(config, mode=cfg.model_configs.mode)
     elif cfg.model_configs.mode == "previous":
+        print("Using previous layer cross attention")
         model = LlamaWithPreviousLayerCrossAttention(config)
     elif cfg.model_configs.mode == "traditional":
         model = LlamaForCausalLM(config)
