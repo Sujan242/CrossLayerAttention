@@ -50,8 +50,8 @@ if __name__ == "__main__":
 
     cfg = load_config(config_path)
 
-    if torch.cuda.is_available():
-        torch.set_default_device(f'cuda:{cfg.gpu.ids[0]}')
+    #if torch.cuda.is_available():
+     #   torch.set_default_device(f'cuda:{cfg.gpu.ids[0]}')
 
     train_dataset, val_dataset, eval_callback = get_train_and_eval_callback(cfg)
 

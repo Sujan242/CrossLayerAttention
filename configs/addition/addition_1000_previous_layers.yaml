@@ -1,6 +1,6 @@
 model_configs:
   hidden_size: 192
-  num_attention_heads: 3
+  num_attention_heads: 1
   num_hidden_layers: 3
   attention_dropout: 0.1
   hidden_dropout: 0.1

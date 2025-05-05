@@ -65,7 +65,8 @@ def train(tokenized, model, cfg):
         logging_strategy="epoch",
         per_device_eval_batch_size=cfg.training_configs.per_device_eval_batch_size,
         # metric_for_best_model="eval_loss",
-        # greater_is_better=False
+        # greater_is_better=False,
+        save_total_limit=1,
     )
 
     trainer = Trainer(
