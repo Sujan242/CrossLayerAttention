@@ -6,6 +6,7 @@ from train import load_config
 import sys
 from torch.nn import DataParallel
 from datasets import load_dataset
+from safetensors.torch import load_file
 from transformers import GPT2TokenizerFast
 from transformers import DataCollatorForLanguageModeling, TrainingArguments, Trainer
 
@@ -69,6 +70,15 @@ def train(tokenized, model, cfg):
         save_total_limit=1,
     )
 
+
+    state_dict = load_file(f"checkpoint-25844/model.safetensors")
+
+    # If model was trained with DataParallel, remove "module." prefix
+    state_dict = {k.replace("module.", ""): v for k, v in state_dict.items()}
+
+    model.load_state_dict(state_dict)
+    # tokenizer = GPT2TokenizerFast.from_pretrained(model_path)
+
     trainer = Trainer(
         model=model,
         args=training_args,
@@ -79,23 +89,23 @@ def train(tokenized, model, cfg):
         compute_metrics=compute_metrics,
     )
 
-    trainer.train()
+    # trainer.train()
 
     # Force evaluation on a single GPU
-    if torch.cuda.is_available():
-        device = torch.device(f"cuda:{cfg.gpu.ids[0]}")  # Use the first GPU
-        model_single_gpu = model.module if isinstance(model, DataParallel) else model  # Unwrap DataParallel if needed
-        model_single_gpu.to(device)
-        trainer.model = model_single_gpu
-        trainer.args._n_gpu = 1  # Inform Trainer about single GPU
-        trainer.args.device = device
-
+    # if torch.cuda.is_available():
+    #     device = torch.device(f"cuda:{cfg.gpu.ids[0]}")  # Use the first GPU
+    #     model_single_gpu = model.module if isinstance(model, DataParallel) else model  # Unwrap DataParallel if needed
+    #     model_single_gpu.to(device)
+    #     trainer.model = model_single_gpu
+    #     trainer.args._n_gpu = 1  # Inform Trainer about single GPU
+    #     trainer.args.device = device
+    # trainer.args.prediction_loss_only = True
     results = trainer.evaluate(eval_dataset=tokenized["test"])
 
     print("Test Perplexity:", math.exp(results["eval_loss"]))
 
-    trainer.save_model("./mini-llama-final_traditional")
-    tokenizer.save_pretrained("./mini-llama-final_traditional")
+    # trainer.save_model("./mini-llama-final_traditional")
+    # tokenizer.save_pretrained("./mini-llama-final_traditional")
 
 def get_model(cfg):
     config = LlamaConfig(
@@ -120,10 +130,10 @@ def get_model(cfg):
     else:
         raise ValueError("Invalid mode")
 
-    if torch.cuda.is_available():
-         gpu_ids = cfg.gpu.ids
-         print(f"using DataParallel training on GPUs: {gpu_ids}")
-         model = DataParallel(model, device_ids=gpu_ids)
+    # if torch.cuda.is_available():
+    #      gpu_ids = cfg.gpu.ids
+    #      print(f"using DataParallel training on GPUs: {gpu_ids}")
+    #      model = DataParallel(model, device_ids=gpu_ids)
     return model
 
 if __name__ == "__main__":
