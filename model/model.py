@@ -107,6 +107,10 @@ class LlamaWithPreviousLayerCrossAttention(LlamaForCausalLM):
 
 class LlamaDecoderForPreviousLayerAttention(LlamaDecoderLayer):
 
+    def __init__(self, config: LlamaConfig, layer_idx: int, num_layers_to_attend: int = 0):
+        super().__init__(config, layer_idx)
+        self.num_layers_to_attend = num_layers_to_attend
+
     def forward(
             self,
             hidden_states: torch.Tensor,
@@ -133,7 +137,10 @@ class LlamaDecoderForPreviousLayerAttention(LlamaDecoderLayer):
         attention_mask_clone = attention_mask_clone.masked_fill(diag_mask[None, None, :, :], torch.finfo(attention_mask.dtype).min)
 
         # repeat attention mask clone for layer_idx times
-        attention_mask_clone = attention_mask_clone.repeat(1, 1, 1, self.self_attn.layer_idx)
+        if self.num_layers_to_attend == 0:
+            attention_mask_clone = attention_mask_clone.repeat(1, 1, 1, self.self_attn.layer_idx)
+        else:
+            attention_mask_clone = attention_mask_clone.repeat(1, 1, 1, self.num_layers_to_attend)
 
         # append the original attention mask to the repeated attention mask
         attention_mask = torch.cat([attention_mask_clone, attention_mask], dim=-1) # TODO validate memory and compute overhead
@@ -142,14 +149,14 @@ class LlamaDecoderForPreviousLayerAttention(LlamaDecoderLayer):
 
 class LlamaCrossLayerAttentionTwoPass(LlamaForCausalLM):
 
-    def __init__(self, config: LlamaConfig,mode, num_layers_to_attend: int = 1):
+    def __init__(self, config: LlamaConfig, num_layers_to_attend: int = 1):
         super().__init__(config)
         self.loss_type = "ForMaskedLM"
         self.num_layers_to_attend = num_layers_to_attend
         self.first_pass_cache = None
         self.second_pass_cache = None
         self.model.layers = nn.ModuleList(
-            [LlamaDecoderForPreviousLayerAttention(config, layer_idx) for layer_idx in range(config.num_hidden_layers)]
+            [LlamaDecoderForPreviousLayerAttention(config, layer_idx, self.num_layers_to_attend) for layer_idx in range(config.num_hidden_layers)]
         )
 
     def forward(

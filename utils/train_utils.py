@@ -4,7 +4,8 @@ import torch
 from torch.nn import DataParallel
 from transformers import LlamaConfig, LlamaForCausalLM
 
-from model.model import LlamaWithAllLayerCrossAttention, LlamaWithPreviousLayerCrossAttention
+from model.model import LlamaWithAllLayerCrossAttention, LlamaWithPreviousLayerCrossAttention, \
+    LlamaCrossLayerAttentionTwoPass
 from utils.AdditionDataset import AdditionDataset
 from utils.AdditionDatasetEval import EvalAdditionDataset
 from utils.AdditionEvalCallbackActual import AdditionEvalCallbackActual
@@ -72,6 +73,8 @@ def get_model(train_dataset, cfg):
         model = LlamaWithPreviousLayerCrossAttention(config)
     elif cfg.model_configs.mode == "traditional":
         model = LlamaForCausalLM(config)
+    elif cfg.model_configs.mode == "two_pass":
+        model = LlamaCrossLayerAttentionTwoPass(config, num_layers_to_attend=int(cfg.model_configs.mode.split("_")[2]))
     else:
         raise ValueError("Invalid mode")
 
