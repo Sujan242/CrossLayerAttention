@@ -1,0 +1,32 @@
+model_configs:
+  hidden_size: 192
+  num_attention_heads: 3
+  num_hidden_layers: 3
+  attention_dropout: 0.1
+  hidden_dropout: 0.1
+  mode: top_3
+
+training_configs:
+  output_dir: "./results"
+  per_device_train_batch_size: 16
+  gradient_accumulation_steps: 2
+  learning_rate: 2e-5
+  num_train_epochs: 1000
+  logging_dir: "./logs"
+  remove_unused_columns: false
+
+
+data_configs:
+  train_data_path: "data/addition_script/train_reversed_addition.txt"
+  val_data_path: "data/addition_script/val_reversed_addition.txt"
+  test_data_path: "data/addition_script/test_reversed_addition.txt"
+  max_sequence_length: 20
+
+eval_configs:
+  max_answer_length: 5
+  eval_interval: 50
+  save_path: "model_weights/addition_two_pass_3.pth"
+  batch_size: 1
+
+gpu:
+   ids: [0,1,2,3]
