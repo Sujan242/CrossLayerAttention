@@ -148,6 +148,9 @@ class LlamaCrossLayerAttentionTwoPass(LlamaForCausalLM):
         self.num_layers_to_attend = num_layers_to_attend
         self.first_pass_cache = None
         self.second_pass_cache = None
+        self.model.layers = nn.ModuleList(
+            [LlamaDecoderForPreviousLayerAttention(config, layer_idx) for layer_idx in range(config.num_hidden_layers)]
+        )
 
     def forward(
             self,
