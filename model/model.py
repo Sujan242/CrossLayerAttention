@@ -2,12 +2,13 @@ from typing import Optional, Union, Callable, List
 
 import torch
 import torch.nn as nn
-from transformers import LlamaConfig, LlamaForCausalLM, GenerationConfig, LogitsProcessorList, StoppingCriteriaList
+from transformers import LlamaConfig, LlamaForCausalLM, GenerationConfig, LogitsProcessorList, StoppingCriteriaList, \
+    DynamicCache
 from transformers.generation.utils import GenerateOutput
 from transformers.modeling_outputs import CausalLMOutputWithPast
 from transformers.models.llama.modeling_llama import LlamaDecoderLayer
 
-from .DynamicCacheCrossLayer import DynamicCacheCrossLayer
+from .DynamicCacheCrossLayer import DynamicCacheCrossLayer, DynamicCacheCrossLayerWithOldCache
 
 
 class LlamaWithAllLayerCrossAttention(LlamaForCausalLM):
@@ -138,3 +139,52 @@ class LlamaDecoderForPreviousLayerAttention(LlamaDecoderLayer):
         attention_mask = torch.cat([attention_mask_clone, attention_mask], dim=-1) # TODO validate memory and compute overhead
 
         return attention_mask
+
+class LlamaCrossLayerAttentionTwoPass(LlamaForCausalLM):
+
+    def __init__(self, config: LlamaConfig,mode, num_layers_to_attend: int = 1):
+        super().__init__(config)
+        self.loss_type = "ForMaskedLM"
+        self.num_layers_to_attend = num_layers_to_attend
+        self.first_pass_cache = None
+        self.second_pass_cache = None
+
+    def forward(
+            self,
+            input_ids: torch.LongTensor = None,
+            attention_mask: Optional[torch.Tensor] = None,
+            position_ids: Optional[torch.LongTensor] = None,
+            past_key_values=None,
+            inputs_embeds: Optional[torch.FloatTensor] = None,
+            labels: Optional[torch.LongTensor] = None,
+            use_cache: Optional[bool] = None,
+            output_attentions: Optional[bool] = None,
+            output_hidden_states: Optional[bool] = None,
+            return_dict: Optional[bool] = None,
+            cache_position: Optional[torch.LongTensor] = None,
+            logits_to_keep: Union[int, torch.Tensor] = 0,
+            **kwargs,
+    ):
+
+        # first pass
+        if self.first_pass_cache is None or len(self.first_pass_cache.key_cache) == 0:
+            self.first_pass_cache = DynamicCache()
+
+        super().forward(input_ids=input_ids, attention_mask=attention_mask, position_ids=position_ids,
+                               past_key_values=self.first_pass_cache, inputs_embeds=inputs_embeds, labels=labels,
+                               use_cache=use_cache, output_attentions=output_attentions,
+                               output_hidden_states=output_hidden_states, return_dict=return_dict,
+                               cache_position=cache_position, logits_to_keep=logits_to_keep, **kwargs)
+
+        # second pass
+        if self.second_pass_cache is None or len(self.second_pass_cache.key_cache) == 0:
+            self.second_pass_cache = DynamicCacheCrossLayerWithOldCache(self.first_pass_cache, self.num_layers_to_attend)
+        else:
+            # setting the updated first pass cache
+            self.second_pass_cache.previous_cache = self.first_pass_cache
+
+        return super().forward(input_ids=input_ids, attention_mask=attention_mask, position_ids=position_ids,
+                               past_key_values=self.second_pass_cache, inputs_embeds=inputs_embeds, labels=labels,
+                               use_cache=use_cache, output_attentions=output_attentions,
+                               output_hidden_states=output_hidden_states, return_dict=return_dict,
+                               cache_position=cache_position, logits_to_keep=logits_to_keep, **kwargs)
