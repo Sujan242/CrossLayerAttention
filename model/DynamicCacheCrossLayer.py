@@ -75,3 +75,40 @@ class DynamicCacheCrossLayer(DynamicCache):
 
     def set_equivalent_to_training(self, equivalent_to_training):
         self.equivalent_to_training = equivalent_to_training
+
+
+class DynamicCacheCrossLayerWithOldCache(DynamicCache):
+
+    def __init__(self,  previous_cache, num_hidden_layers=None, num_layers_to_attend=None):
+        super().__init__(num_hidden_layers=None)
+        self.num_layers_to_attend = num_layers_to_attend
+        self.previous_cache = previous_cache
+
+    def update(
+            self,
+            key_states: torch.Tensor,
+            value_states: torch.Tensor,
+            layer_idx: int,
+            cache_kwargs: Optional[Dict[str, Any]] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        super().update(key_states, value_states, layer_idx, cache_kwargs)
+        if self._seen_tokens > 1:
+            if self.num_layers_to_attend == 1 and layer_idx == len(self.key_cache) - 1:
+                return self.key_cache[layer_idx], self.value_cache[layer_idx]
+
+            previous_cache_keys = torch.cat([self.previous_cache.key_cache[i][:, :, :self._seen_tokens - 1, :]
+                                             for i in range(len(self.previous_cache.key_cache) - self.num_layers_to_attend,
+                                                            len(self.previous_cache.key_cache))
+                                                ],
+                                            dim=2)
+            concatenated_keys = torch.cat([previous_cache_keys, self.key_cache[layer_idx]], dim=2)
+
+            previous_cache_values = torch.cat([self.previous_cache.value_cache[i][:, :, :self._seen_tokens - 1, ]
+                                                  for i in range(len(self.previous_cache.value_cache) - self.num_layers_to_attend,
+                                                                  len(self.previous_cache.value_cache))
+                                                    ],
+                                                 dim=2)
+            concatenated_values = torch.cat([previous_cache_values, self.value_cache[layer_idx]], dim=2)
+            return concatenated_keys, concatenated_values
+
+        return self.key_cache[layer_idx], self.value_cache[layer_idx]
