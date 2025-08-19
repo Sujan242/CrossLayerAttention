@@ -79,7 +79,7 @@ class DynamicCacheCrossLayer(DynamicCache):
 
 class DynamicCacheCrossLayerWithOldCache(DynamicCache):
 
-    def __init__(self,  previous_cache, num_hidden_layers, num_layers_to_attend=None):
+    def __init__(self,  previous_cache, num_layers_to_attend, num_hidden_layers=None):
         super().__init__(num_hidden_layers)
         self.num_layers_to_attend = num_layers_to_attend
         self.previous_cache = previous_cache
@@ -93,17 +93,18 @@ class DynamicCacheCrossLayerWithOldCache(DynamicCache):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         super().update(key_states, value_states, layer_idx, cache_kwargs)
         if self._seen_tokens > 1:
-            if self.num_layers_to_attend == 1 and layer_idx == len(self.key_cache) - 1:
-                return self.key_cache[layer_idx], self.value_cache[layer_idx]
+            # if self.num_layers_to_attend == 1 and layer_idx == len(self.key_cache) - 1:
+            #     return self.key_cache[layer_idx], self.value_cache[layer_idx]
 
-            previous_cache_keys = torch.cat([self.previous_cache.key_cache[i][:, :, :self._seen_tokens - 1, :]
+            # Gather all token's cache from top layers
+            previous_cache_keys = torch.cat([self.previous_cache.key_cache[i][:, :, :self._seen_tokens, :]
                                              for i in range(len(self.previous_cache.key_cache) - self.num_layers_to_attend,
                                                             len(self.previous_cache.key_cache))
                                                 ],
                                             dim=2)
             concatenated_keys = torch.cat([previous_cache_keys, self.key_cache[layer_idx]], dim=2)
 
-            previous_cache_values = torch.cat([self.previous_cache.value_cache[i][:, :, :self._seen_tokens - 1, ]
+            previous_cache_values = torch.cat([self.previous_cache.value_cache[i][:, :, :self._seen_tokens, ]
                                                   for i in range(len(self.previous_cache.value_cache) - self.num_layers_to_attend,
                                                                   len(self.previous_cache.value_cache))
                                                     ],

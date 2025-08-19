@@ -154,10 +154,10 @@ class LlamaCrossLayerAttentionTwoPass(LlamaForCausalLM):
         print("initializing LlamaCrossLayerAttentionTwoPass")
         self.loss_type = "ForMaskedLM"
         self.num_layers_to_attend = num_layers_to_attend
-        self.first_pass_cache = None
-        self.second_pass_cache = None
+        # self.first_pass_cache = None
+        # self.second_pass_cache = None
         self.model.layers = nn.ModuleList(
-            [LlamaDecoderForPreviousLayerAttention(config, layer_idx, self.num_layers_to_attend) for layer_idx in range(config.num_hidden_layers)]
+            [LlamaDecoderForTwoPassCrossAttention(config, layer_idx, self.num_layers_to_attend) for layer_idx in range(config.num_hidden_layers)]
         )
 
     def forward(
@@ -165,7 +165,7 @@ class LlamaCrossLayerAttentionTwoPass(LlamaForCausalLM):
             input_ids: torch.LongTensor = None,
             attention_mask: Optional[torch.Tensor] = None,
             position_ids: Optional[torch.LongTensor] = None,
-            past_key_values=None,
+            past_key_values: DynamicCacheCrossLayerWithOldCache = None,
             inputs_embeds: Optional[torch.FloatTensor] = None,
             labels: Optional[torch.LongTensor] = None,
             use_cache: Optional[bool] = None,
@@ -178,24 +178,56 @@ class LlamaCrossLayerAttentionTwoPass(LlamaForCausalLM):
     ):
 
         # first pass
-        if self.first_pass_cache is None or len(self.first_pass_cache.key_cache) == 0:
-            self.first_pass_cache = DynamicCache()
+        if past_key_values is None or len(past_key_values.key_cache) == 0:
+            first_pass_cache = DynamicCache()
+        else:
+            first_pass_cache = past_key_values.previous_cache
 
         super().forward(input_ids=input_ids, attention_mask=attention_mask, position_ids=position_ids,
-                               past_key_values=self.first_pass_cache, inputs_embeds=inputs_embeds, labels=labels,
+                               past_key_values=first_pass_cache, inputs_embeds=inputs_embeds, labels=labels,
                                use_cache=use_cache, output_attentions=output_attentions,
                                output_hidden_states=output_hidden_states, return_dict=return_dict,
                                cache_position=cache_position, logits_to_keep=logits_to_keep, **kwargs)
 
         # second pass
-        if self.second_pass_cache is None or len(self.second_pass_cache.key_cache) == 0:
-            self.second_pass_cache = DynamicCacheCrossLayerWithOldCache(self.first_pass_cache, self.num_layers_to_attend)
+        if past_key_values is None or len(past_key_values.key_cache) == 0:
+            past_key_values = DynamicCacheCrossLayerWithOldCache(first_pass_cache, num_layers_to_attend=self.num_layers_to_attend)
         else:
             # setting the updated first pass cache
-            self.second_pass_cache.previous_cache = self.first_pass_cache
+            past_key_values.previous_cache = first_pass_cache
 
         return super().forward(input_ids=input_ids, attention_mask=attention_mask, position_ids=position_ids,
-                               past_key_values=self.second_pass_cache, inputs_embeds=inputs_embeds, labels=labels,
+                               past_key_values=past_key_values, inputs_embeds=inputs_embeds, labels=labels,
                                use_cache=use_cache, output_attentions=output_attentions,
                                output_hidden_states=output_hidden_states, return_dict=return_dict,
                                cache_position=cache_position, logits_to_keep=logits_to_keep, **kwargs)
+
+
+class LlamaDecoderForTwoPassCrossAttention(LlamaDecoderLayer):
+
+    def __init__(self, config: LlamaConfig, layer_idx: int, num_layers_to_attend: int = 0):
+        super().__init__(config, layer_idx)
+        self.num_layers_to_attend = num_layers_to_attend
+
+    def forward(
+            self,
+            hidden_states: torch.Tensor,
+            attention_mask: Optional[torch.Tensor] = None,
+            position_ids: Optional[torch.LongTensor] = None,
+            past_key_value= None,
+            output_attentions: Optional[bool] = False,
+            use_cache: Optional[bool] = False,
+            cache_position: Optional[torch.LongTensor] = None,
+            position_embeddings = None,
+            **kwargs):
+        attention_mask = self._augment_attention_mask(attention_mask)
+        return super().forward(hidden_states, attention_mask, position_ids, past_key_value, output_attentions, use_cache, cache_position, position_embeddings, **kwargs)
+
+    def _augment_attention_mask(self, attention_mask):
+        if attention_mask is None:
+            return attention_mask
+        # clone attention mask
+        attention_mask_clone = attention_mask.clone()
+        # repeat attention mask for num_layers_to_attend+1 times
+        attention_mask_clone = attention_mask_clone.repeat(1, 1, 1, self.num_layers_to_attend + 1)
+        return attention_mask_clone
