@@ -80,7 +80,7 @@ class DynamicCacheCrossLayer(DynamicCache):
 class DynamicCacheCrossLayerWithOldCache(DynamicCache):
 
     def __init__(self,  previous_cache, num_hidden_layers, num_layers_to_attend=None):
-        super().__init__(num_hidden_layers=None)
+        super().__init__(num_hidden_layers)
         self.num_layers_to_attend = num_layers_to_attend
         self.previous_cache = previous_cache
 
