@@ -73,7 +73,8 @@ def get_model(train_dataset, cfg):
         model = LlamaWithPreviousLayerCrossAttention(config)
     elif cfg.model_configs.mode == "traditional":
         model = LlamaForCausalLM(config)
-    elif cfg.model_configs.mode == "two_pass":
+    elif cfg.model_configs.mode.startswith("two_pass"):
+        print("two pass mode")
         model = LlamaCrossLayerAttentionTwoPass(config, num_layers_to_attend=int(cfg.model_configs.mode.split("_")[2]))
     else:
         raise ValueError("Invalid mode")

@@ -4,7 +4,7 @@ model_configs:
   num_hidden_layers: 3
   attention_dropout: 0.1
   hidden_dropout: 0.1
-  mode: top_3
+  mode: two_pass_3
 
 training_configs:
   output_dir: "./results"
@@ -25,7 +25,7 @@ data_configs:
 eval_configs:
   max_answer_length: 5
   eval_interval: 50
-  save_path: "model_weights/addition_two_pass_3.pth"
+  save_path: "model_weights/addition_two_pass_3(1).pth"
   batch_size: 1
 
 gpu:

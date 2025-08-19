@@ -151,6 +151,7 @@ class LlamaCrossLayerAttentionTwoPass(LlamaForCausalLM):
 
     def __init__(self, config: LlamaConfig, num_layers_to_attend: int = 1):
         super().__init__(config)
+        print("initializing LlamaCrossLayerAttentionTwoPass")
         self.loss_type = "ForMaskedLM"
         self.num_layers_to_attend = num_layers_to_attend
         self.first_pass_cache = None
